@@ -178,9 +178,47 @@ sudo yum install python3-pymysql python3-flask
 pip install llama-cpp-python
 ```
 
+## Vector Search (Enhanced Feature)
+
+The chatbot now supports **semantic/vector search** using ChromaDB and sentence-transformers for better context retrieval.
+
+### Setup Vector Search
+
+1. **Index your wiki pages** (one-time setup):
+```bash
+python3 index_wiki.py
+```
+
+This will:
+- Download the sentence-transformers model (all-MiniLM-L6-v2)
+- Index all wiki pages into ChromaDB
+- Store embeddings in `./chroma_db/` directory
+
+2. **Enable in `.env`**:
+```bash
+USE_VECTOR_SEARCH=True
+VECTOR_DB_PATH=./chroma_db
+VECTOR_TOP_K=3
+```
+
+3. **Restart the chatbot**:
+```bash
+./restart.sh
+```
+
+### How it Works
+
+- **With Vector Search**: Uses semantic similarity to find relevant pages (better understanding of context)
+- **Without Vector Search**: Falls back to keyword-based search
+- Automatic fallback if vector DB is empty or unavailable
+
+### Re-indexing
+
+Run `index_wiki.py` again whenever wiki content changes significantly.
+
 ## Next Steps
 
-- **Vector search**: Add embeddings for better context retrieval
+- ✅ **Vector search**: Semantic embeddings for better context retrieval
 - **Chat history**: Implement conversation memory
 - **Streaming**: Stream responses for better UX
 - **Caching**: Cache frequent queries
