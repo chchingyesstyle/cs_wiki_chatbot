@@ -5,6 +5,7 @@ A proof-of-concept chatbot that uses your MediaWiki 1.43 database with a local L
 ## Architecture
 
 - **Database**: MariaDB (MediaWiki 1.43)
+- **Vector Database**: ChromaDB with sentence-transformers (semantic search)
 - **LLM**: Local Llama model (GGUF format via llama-cpp-python)
 - **Backend**: Python + Flask
 - **Frontend**: Simple HTML/JS interface
@@ -12,6 +13,7 @@ A proof-of-concept chatbot that uses your MediaWiki 1.43 database with a local L
 ## Features
 
 ✅ Query MediaWiki database for relevant content  
+✅ Semantic search with vector embeddings (ChromaDB)  
 ✅ Use LLM to generate natural language answers  
 ✅ RESTful API with Flask  
 ✅ Web UI and CLI interface  
