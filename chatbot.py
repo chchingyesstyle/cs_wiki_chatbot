@@ -47,15 +47,22 @@ class WikiChatbot:
         # Try searching with all keywords first
         results = self.db.search_pages(keywords, limit=max_pages)
         
-        # If no results, try with fewer keywords
+        # If no results, try with fewer keywords (progressively)
         if not results and len(keywords.split()) > 2:
+            # Try first 3 keywords
             keywords_reduced = ' '.join(keywords.split()[:3])
             results = self.db.search_pages(keywords_reduced, limit=max_pages)
+            
+            # Try first 2 keywords
+            if not results and len(keywords.split()) > 1:
+                keywords_reduced = ' '.join(keywords.split()[:2])
+                results = self.db.search_pages(keywords_reduced, limit=max_pages)
         
-        # If still no results, try each keyword individually
+        # If still no results, try each keyword individually (prioritize longer keywords first)
         if not results:
-            for keyword in keywords.split()[:3]:
-                if len(keyword) > 2:
+            sorted_keywords = sorted(keywords.split(), key=len, reverse=True)
+            for keyword in sorted_keywords[:4]:
+                if len(keyword) >= 2:  # Allow 2-char keywords like "BE"
                     results = self.db.search_pages(keyword, limit=max_pages)
                     if results:
                         break

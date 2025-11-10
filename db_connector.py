@@ -34,19 +34,30 @@ class WikiDBConnector:
             self.connection = None
     
     def search_pages(self, query: str, limit: int = 5) -> List[Dict]:
-        """Search wiki pages by title or content"""
+        """Search wiki pages by title or content, prioritizing current pages"""
         if not self.connection:
             self.connect()
         
         try:
             with self.connection.cursor() as cursor:
                 # MediaWiki 1.43+ uses slots + content table
+                # Prioritize: 1) Current pages, 2) Title matches over content matches
                 sql = """
                     SELECT 
                         p.page_id,
                         p.page_title,
                         p.page_namespace,
-                        t.old_text as content
+                        t.old_text as content,
+                        CASE 
+                            WHEN p.page_title NOT LIKE %s
+                                AND p.page_title NOT LIKE %s
+                                AND p.page_title NOT LIKE %s THEN 3
+                            ELSE 1
+                        END +
+                        CASE 
+                            WHEN p.page_title LIKE %s THEN 2
+                            ELSE 0
+                        END as relevance
                     FROM page p
                     JOIN revision r ON p.page_latest = r.rev_id
                     JOIN slots s ON r.rev_id = s.slot_revision_id
@@ -57,10 +68,11 @@ class WikiDBConnector:
                         p.page_title LIKE %s 
                         OR t.old_text LIKE %s
                     )
+                    ORDER BY relevance DESC
                     LIMIT %s
                 """
                 search_term = f"%{query}%"
-                cursor.execute(sql, (search_term, search_term, limit))
+                cursor.execute(sql, ('%OUTDATED%', '%EXPIRED%', '%MOVED%', search_term, search_term, search_term, limit))
                 results = cursor.fetchall()
                 return results
         except Exception as e:
