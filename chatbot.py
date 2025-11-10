@@ -33,9 +33,24 @@ class WikiChatbot:
         """Extract important keywords from user query"""
         # Remove common question words but keep important abbreviations
         stop_words = ['what', 'is', 'are', 'the', 'how', 'can', 'do', 'does', 'tell', 'me', 'about', 'please']
-        # Remove punctuation
-        query = query.replace('?', '').replace(',', '').replace('.', '')
-        words = query.lower().split()
+        
+        # Handle domain names specially (keep .com, .net, etc.)
+        # Replace periods in domain names with placeholder, then remove other punctuation
+        import re
+        # Find domain-like patterns (word.com, word.net, etc.)
+        query_processed = re.sub(r'\.com\b', 'DOTCOM', query, flags=re.IGNORECASE)
+        query_processed = re.sub(r'\.net\b', 'DOTNET', query_processed, flags=re.IGNORECASE)
+        query_processed = re.sub(r'\.org\b', 'DOTORG', query_processed, flags=re.IGNORECASE)
+        
+        # Remove other punctuation
+        query_processed = query_processed.replace('?', '').replace(',', '').replace('.', '')
+        
+        # Restore domain names
+        query_processed = query_processed.replace('DOTCOM', '.com')
+        query_processed = query_processed.replace('DOTNET', '.net')
+        query_processed = query_processed.replace('DOTORG', '.org')
+        
+        words = query_processed.lower().split()
         keywords = [w for w in words if w not in stop_words and len(w) > 1]
         return ' '.join(keywords[:6])  # Limit to top 6 keywords
     
