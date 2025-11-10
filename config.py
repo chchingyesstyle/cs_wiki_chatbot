@@ -24,3 +24,8 @@ class Config:
     FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')
     FLASK_PORT = int(os.getenv('FLASK_PORT', 5000))
     FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    
+    # Vector store settings
+    USE_VECTOR_SEARCH = os.getenv('USE_VECTOR_SEARCH', 'True').lower() == 'true'
+    VECTOR_DB_PATH = os.getenv('VECTOR_DB_PATH', './chroma_db')
+    VECTOR_TOP_K = int(os.getenv('VECTOR_TOP_K', 3))

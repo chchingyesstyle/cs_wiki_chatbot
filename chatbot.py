@@ -1,5 +1,7 @@
 from db_connector import WikiDBConnector
 from llm_model import LlamaModel
+from vector_store import VectorStore
+from config import Config
 from typing import Dict, List
 import re
 
@@ -7,10 +9,30 @@ class WikiChatbot:
     """Main chatbot logic combining wiki data and LLM"""
     
     def __init__(self):
+        self.config = Config()
         self.db = WikiDBConnector()
         self.llm = LlamaModel()
+        self.vector_store = None
+        
         self.db.connect()
         self.llm.load_model()
+        
+        # Initialize vector store if enabled
+        if self.config.USE_VECTOR_SEARCH:
+            try:
+                self.vector_store = VectorStore(persist_directory=self.config.VECTOR_DB_PATH)
+                if self.vector_store.initialize():
+                    if not self.vector_store.is_empty():
+                        print(f"✓ Vector search enabled ({self.vector_store.collection.count()} documents)")
+                    else:
+                        print("⚠️  Vector store is empty. Run index_wiki.py to populate it.")
+                        self.vector_store = None
+                else:
+                    print("⚠️  Vector store initialization failed. Using keyword search only.")
+                    self.vector_store = None
+            except Exception as e:
+                print(f"⚠️  Vector store error: {e}. Using keyword search only.")
+                self.vector_store = None
     
     def clean_wiki_text(self, text: str) -> str:
         """Remove MediaWiki markup for cleaner context"""
@@ -56,6 +78,48 @@ class WikiChatbot:
     
     def retrieve_context(self, query: str, max_pages: int = 3) -> List[Dict]:
         """Retrieve relevant wiki pages for the query"""
+        
+        # Use vector search if available
+        if self.vector_store:
+            return self._retrieve_context_vector(query, max_pages)
+        else:
+            return self._retrieve_context_keyword(query, max_pages)
+    
+    def _retrieve_context_vector(self, query: str, max_pages: int = 3) -> List[Dict]:
+        """Retrieve context using vector/semantic search"""
+        try:
+            # Search vector store
+            vector_results = self.vector_store.search(query, top_k=max_pages)
+            
+            context_pages = []
+            for result in vector_results:
+                # Get full page content from database
+                page_data = self.db.get_page_by_title(result['title'].replace(' ', '_'))
+                
+                if page_data:
+                    content = page_data.get('content', '')
+                    if isinstance(content, bytes):
+                        content = content.decode('utf-8', errors='ignore')
+                    content = self.clean_wiki_text(content)
+                    
+                    # Limit content length
+                    if len(content) > 1500:
+                        content = content[:1500] + "..."
+                    
+                    context_pages.append({
+                        'title': result['title'],
+                        'content': content,
+                        'similarity': result.get('similarity_score')
+                    })
+            
+            return context_pages
+            
+        except Exception as e:
+            print(f"Vector search error: {e}. Falling back to keyword search.")
+            return self._retrieve_context_keyword(query, max_pages)
+    
+    def _retrieve_context_keyword(self, query: str, max_pages: int = 3) -> List[Dict]:
+        """Retrieve context using keyword search"""
         # Extract keywords from the question
         keywords = self.extract_keywords(query)
         
