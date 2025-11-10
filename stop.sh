@@ -62,3 +62,10 @@ if [ -f "$WEB_PID_FILE" ]; then
     
     rm -f "$WEB_PID_FILE"
 fi
+
+# Kill any remaining http.server processes on port 8080
+WEB_PIDS=$(ps aux | grep "http.server 8080" | grep -v grep | awk '{print $2}')
+if [ ! -z "$WEB_PIDS" ]; then
+    echo "Cleaning up remaining web server processes..."
+    echo "$WEB_PIDS" | xargs kill -9 2>/dev/null
+fi
