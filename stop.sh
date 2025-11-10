@@ -7,41 +7,44 @@ WEB_PID_FILE="$SCRIPT_DIR/web.pid"
 
 cd "$SCRIPT_DIR"
 
+# Flag to track if chatbot was stopped
+CHATBOT_STOPPED=0
+
 # Check if PID file exists
 if [ ! -f "$PID_FILE" ]; then
     echo "Chatbot is not running (no PID file found)"
-    exit 0
-fi
-
-PID=$(cat "$PID_FILE")
-
-# Check if process is running
-if ! ps -p $PID > /dev/null 2>&1; then
-    echo "Chatbot is not running (process not found)"
-    rm -f "$PID_FILE"
-    exit 0
-fi
-
-# Stop the process
-echo "Stopping MediaWiki Chatbot (PID: $PID)..."
-kill $PID
-
-# Wait for process to stop (max 10 seconds)
-for i in {1..10}; do
+else
+    PID=$(cat "$PID_FILE")
+    
+    # Check if process is running
     if ! ps -p $PID > /dev/null 2>&1; then
-        echo "Chatbot stopped successfully"
+        echo "Chatbot is not running (process not found)"
         rm -f "$PID_FILE"
-        exit 0
+    else
+        # Stop the process
+        echo "Stopping MediaWiki Chatbot (PID: $PID)..."
+        kill $PID
+        
+        # Wait for process to stop (max 10 seconds)
+        for i in {1..10}; do
+            if ! ps -p $PID > /dev/null 2>&1; then
+                echo "Chatbot stopped successfully"
+                rm -f "$PID_FILE"
+                CHATBOT_STOPPED=1
+                break
+            fi
+            sleep 1
+        done
+        
+        # Force kill if still running
+        if ps -p $PID > /dev/null 2>&1; then
+            echo "Force killing chatbot..."
+            kill -9 $PID
+            rm -f "$PID_FILE"
+            echo "Chatbot force stopped"
+            CHATBOT_STOPPED=1
+        fi
     fi
-    sleep 1
-done
-
-# Force kill if still running
-if ps -p $PID > /dev/null 2>&1; then
-    echo "Force killing chatbot..."
-    kill -9 $PID
-    rm -f "$PID_FILE"
-    echo "Chatbot force stopped"
 fi
 
 # Stop web server
