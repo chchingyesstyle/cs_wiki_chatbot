@@ -146,12 +146,31 @@ chatbot/
 
 ## How It Works
 
-1. **User asks a question** → Sent to Flask API
-2. **Database search** → Searches MediaWiki DB for relevant pages
-3. **Context building** → Cleans and formats wiki content
-4. **Prompt creation** → Builds prompt with context + question
-5. **LLM generation** → Local Llama model generates answer
-6. **Response** → Returns answer with source attribution
+### RAG (Retrieval-Augmented Generation) Architecture
+
+1. **Retrieval** → Searches for relevant wiki pages
+   - Vector search (semantic similarity) if enabled
+   - Falls back to keyword search
+   - Returns top 3 most relevant pages
+
+2. **Augmentation** → Builds context-enriched prompt
+   - Combines retrieved documents with user question
+   - Formats context with clear source references
+   - Adds customer service agent instructions
+
+3. **Generation** → LLM generates answer
+   - Uses local Llama model
+   - Answers based ONLY on provided context
+   - Cites sources using **Source: [Name]** format
+   - Says "I don't know" when context lacks information
+
+### Customer Service Agent Persona
+
+The chatbot acts as a customer service agent that:
+- ✅ Answers based ONLY on the provided wiki context
+- ✅ Explicitly cites sources at the end of answers
+- ✅ Says "I don't know based on the available information" when context is insufficient
+- ✅ Never makes up information outside the provided context
 
 ## Troubleshooting
 

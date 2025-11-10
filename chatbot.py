@@ -1,3 +1,18 @@
+"""
+MediaWiki RAG (Retrieval-Augmented Generation) Chatbot
+
+RAG Architecture:
+1. RETRIEVAL: Find relevant wiki pages using vector/keyword search
+2. AUGMENTATION: Build context-enriched prompt with retrieved documents
+3. GENERATION: Generate answer using LLM with customer service persona
+
+Customer Service Agent Persona:
+- Answers based ONLY on provided context
+- Cites sources explicitly using **Source: [Name]** format
+- Says "I don't know" when context lacks information
+- Never makes up information outside the context
+"""
+
 from db_connector import WikiDBConnector
 from llm_model import LlamaModel
 from vector_store import VectorStore
@@ -171,45 +186,61 @@ class WikiChatbot:
         return context_pages
     
     def build_prompt(self, user_question: str, context_pages: List[Dict]) -> str:
-        """Build the prompt for the LLM with wiki context"""
+        """Build RAG prompt for customer service agent"""
         
-        # Build context section
+        # Build context section with clear source references
         context_text = ""
         if context_pages:
-            context_text = "Here is relevant information from the wiki:\n\n"
+            context_text = "CONTEXT INFORMATION:\n"
             for i, page in enumerate(context_pages, 1):
-                context_text += f"[Page {i}: {page['title']}]\n{page['content']}\n\n"
+                context_text += f"\n[Source {i}: {page['title']}]\n{page['content']}\n"
+        else:
+            context_text = "CONTEXT INFORMATION:\nNo relevant information found.\n"
         
-        # Build full prompt
-        prompt = f"""You are a helpful assistant that answers questions based on a wiki knowledge base.
+        # Build RAG prompt with strict instructions
+        prompt = f"""You are a customer service agent that answers questions based ONLY on the provided context.
 
 {context_text}
 
-User question: {user_question}
+INSTRUCTIONS:
+- Answer based ONLY on the context provided above
+- If the context contains the answer, provide a clear and helpful response
+- You MUST cite sources at the end using format: **Source: [Source Name]**
+- If multiple sources are used, list all: **Sources: [Source 1], [Source 2]**
+- If the context does not contain enough information to answer, respond with: "I don't know based on the available information."
+- Do not make up information or use knowledge outside the provided context
 
-Based on the wiki information provided above, please answer the question. If the information is not available in the wiki pages, say so clearly.
+USER QUESTION: {user_question}
 
-Answer:"""
+ANSWER:"""
         
         return prompt
     
     def chat(self, user_question: str) -> Dict:
-        """Main chat function"""
+        """Main RAG chat function with retrieval and generation"""
         
-        # Retrieve relevant wiki pages
+        # Step 1: Retrieve relevant wiki pages (Retrieval)
         context_pages = self.retrieve_context(user_question, max_pages=3)
         
-        # Build prompt
+        # Step 2: Build RAG prompt with context (Augmentation)
         prompt = self.build_prompt(user_question, context_pages)
         
-        # Generate response
+        # Step 3: Generate response from LLM (Generation)
         answer = self.llm.generate_response(prompt)
+        
+        # Step 4: Extract and format sources
+        sources = [page['title'] for page in context_pages]
+        
+        # Add metadata about retrieval method used
+        retrieval_method = "vector_search" if self.vector_store else "keyword_search"
         
         return {
             'question': user_question,
             'answer': answer,
-            'sources': [page['title'] for page in context_pages],
-            'context_used': len(context_pages) > 0
+            'sources': sources,
+            'context_used': len(context_pages) > 0,
+            'retrieval_method': retrieval_method,
+            'num_sources': len(sources)
         }
     
     def close(self):
