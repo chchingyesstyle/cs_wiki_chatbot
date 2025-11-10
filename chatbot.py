@@ -101,13 +101,44 @@ class WikiChatbot:
             return self._retrieve_context_keyword(query, max_pages)
     
     def _retrieve_context_vector(self, query: str, max_pages: int = 3) -> List[Dict]:
-        """Retrieve context using vector/semantic search"""
+        """Retrieve context using hybrid vector + keyword search with expired page filtering"""
         try:
-            # Search vector store
-            vector_results = self.vector_store.search(query, top_k=max_pages)
+            # Search vector store with more results to filter
+            vector_results = self.vector_store.search(query, top_k=max_pages * 4)
+            
+            # Filter out expired/outdated pages and prioritize exact title matches
+            filtered_results = []
+            query_lower = query.lower()
+            keywords = self.extract_keywords(query).lower().split()
+            
+            for result in vector_results:
+                title = result['title']
+                title_lower = title.lower()
+                original_score = result.get('similarity_score', 0)
+                
+                # Skip expired/outdated pages unless explicitly asked for
+                if ('expired' in query_lower or 'outdated' in query_lower):
+                    pass  # Include them if user asks
+                elif ('(expired)' in title_lower or '(outdated)' in title_lower or 
+                      title_lower.endswith('(expired)') or title_lower.endswith('(outdated)') or
+                      title_lower.startswith('(expired)') or title_lower.startswith('(outdated)')):
+                    continue  # Skip expired pages
+                
+                # Boost score if title contains keywords (helps with exact matches)
+                boost = 0
+                for keyword in keywords:
+                    if len(keyword) >= 3 and keyword in title_lower:
+                        boost += 0.15
+                
+                result['adjusted_similarity'] = original_score + boost
+                filtered_results.append(result)
+            
+            # Sort by adjusted similarity and take top results
+            filtered_results.sort(key=lambda x: x.get('adjusted_similarity', 0), reverse=True)
+            filtered_results = filtered_results[:max_pages]
             
             context_pages = []
-            for result in vector_results:
+            for result in filtered_results:
                 # Get full page content from database
                 page_data = self.db.get_page_by_title(result['title'].replace(' ', '_'))
                 
@@ -124,7 +155,7 @@ class WikiChatbot:
                     context_pages.append({
                         'title': result['title'],
                         'content': content,
-                        'similarity': result.get('similarity_score')
+                        'similarity': result.get('adjusted_similarity')
                     })
             
             return context_pages
@@ -209,6 +240,7 @@ INSTRUCTIONS:
 - If multiple sources are used, list all: **Sources: [Source 1], [Source 2]**
 - If the context does not contain enough information to answer, respond with: "I don't know based on the available information."
 - Do not make up information or use knowledge outside the provided context
+- Answer ONLY the user's question below - do not generate additional questions or answers
 
 USER QUESTION: {user_question}
 
