@@ -29,9 +29,36 @@ class WikiChatbot:
         
         return text.strip()
     
+    def extract_keywords(self, query: str) -> str:
+        """Extract important keywords from user query"""
+        # Remove common question words but keep important abbreviations
+        stop_words = ['what', 'is', 'are', 'the', 'how', 'can', 'do', 'does', 'tell', 'me', 'about', 'please']
+        # Remove punctuation
+        query = query.replace('?', '').replace(',', '').replace('.', '')
+        words = query.lower().split()
+        keywords = [w for w in words if w not in stop_words and len(w) > 1]
+        return ' '.join(keywords[:6])  # Limit to top 6 keywords
+    
     def retrieve_context(self, query: str, max_pages: int = 3) -> List[Dict]:
         """Retrieve relevant wiki pages for the query"""
-        results = self.db.search_pages(query, limit=max_pages)
+        # Extract keywords from the question
+        keywords = self.extract_keywords(query)
+        
+        # Try searching with all keywords first
+        results = self.db.search_pages(keywords, limit=max_pages)
+        
+        # If no results, try with fewer keywords
+        if not results and len(keywords.split()) > 2:
+            keywords_reduced = ' '.join(keywords.split()[:3])
+            results = self.db.search_pages(keywords_reduced, limit=max_pages)
+        
+        # If still no results, try each keyword individually
+        if not results:
+            for keyword in keywords.split()[:3]:
+                if len(keyword) > 2:
+                    results = self.db.search_pages(keyword, limit=max_pages)
+                    if results:
+                        break
         
         context_pages = []
         for result in results:
