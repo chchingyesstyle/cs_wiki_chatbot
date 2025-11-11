@@ -21,9 +21,10 @@ A proof-of-concept chatbot that uses your MediaWiki 1.43 database with a local L
 ✅ Use LLM to generate natural language answers  
 ✅ RESTful API with Flask  
 ✅ Web UI and CLI interface  
+✅ **Clickable source links**: Direct links to wiki pages for referenced sources  
 ✅ Source attribution (shows which wiki pages were used)  
 ✅ Automatic filtering of expired/outdated pages  
-✅ Customer service agent persona (cites sources, admits when it doesn't know)  
+✅ Customer service agent persona (admits when it doesn't know)  
 ✅ **RAG-powered Q&A**: Retrieval-Augmented Generation for accurate, context-based answers
 
 ## Installation
@@ -67,6 +68,7 @@ nano .env
 Update these values in `.env`:
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` - Your MariaDB credentials
 - `MODEL_PATH` - Path to your GGUF model file
+- `WIKI_BASE_URL` - Your MediaWiki base URL (e.g., http://172.17.7.95/cswikiuat/index.php)
 
 ## Usage
 
@@ -121,7 +123,10 @@ Response:
 {
   "question": "Your question",
   "answer": "Bot's answer",
-  "sources": ["Page1", "Page2"],
+  "sources": [
+    {"title": "Page1", "url": "http://wiki/index.php?title=Page1"},
+    {"title": "Page2", "url": "http://wiki/index.php?title=Page2"}
+  ],
   "context_used": true
 }
 ```
@@ -168,14 +173,14 @@ chatbot/
 3. **Generation** → LLM generates answer
    - Uses local Llama model
    - Answers based ONLY on provided context
-   - Cites sources using **Source: [Name]** format
+   - Sources displayed as clickable links below the answer
    - Says "I don't know" when context lacks information
 
 ### Customer Service Agent Persona
 
 The chatbot acts as a customer service agent that:
 - ✅ Answers based ONLY on the provided wiki context
-- ✅ Explicitly cites sources at the end of answers
+- ✅ Displays clickable source links to referenced wiki pages
 - ✅ Says "I don't know based on the available information" when context is insufficient
 - ✅ Never makes up information outside the provided context
 
@@ -244,9 +249,21 @@ VECTOR_TOP_K=3
 
 Run `index_wiki.py` again whenever wiki content changes significantly.
 
+## Quick Start Scripts
+
+Use the provided convenience scripts to manage the chatbot:
+
+```bash
+./start.sh    # Start the chatbot and web server
+./stop.sh     # Stop all services
+./restart.sh  # Restart all services
+./status.sh   # Check service status
+```
+
 ## Next Steps
 
 - ✅ **Vector search**: Semantic embeddings for better context retrieval
+- ✅ **Clickable source links**: Direct navigation to wiki pages
 - **Chat history**: Implement conversation memory
 - **Streaming**: Stream responses for better UX
 - **Caching**: Cache frequent queries

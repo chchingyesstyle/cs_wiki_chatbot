@@ -29,3 +29,6 @@ class Config:
     USE_VECTOR_SEARCH = os.getenv('USE_VECTOR_SEARCH', 'True').lower() == 'true'
     VECTOR_DB_PATH = os.getenv('VECTOR_DB_PATH', './chroma_db')
     VECTOR_TOP_K = int(os.getenv('VECTOR_TOP_K', 3))
+    
+    # Wiki settings
+    WIKI_BASE_URL = os.getenv('WIKI_BASE_URL', 'http://172.17.7.95/cswikiuat/index.php')

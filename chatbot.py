@@ -236,10 +236,11 @@ class WikiChatbot:
 INSTRUCTIONS:
 - Answer based ONLY on the context provided above
 - If the context contains the answer, provide a clear and helpful response
-- You MUST cite sources at the end using format: **Source: [Source Name]**
-- If multiple sources are used, list all: **Sources: [Source 1], [Source 2]**
 - If the context does not contain enough information to answer, respond with: "I don't know based on the available information."
 - Do not make up information or use knowledge outside the provided context
+- DO NOT write "Source:" or "Sources:" anywhere in your answer
+- DO NOT write [Source 1], [Source 2], etc. in your answer
+- DO NOT add any source citations or references in your answer
 - Answer ONLY the user's question below - do not generate additional questions or answers
 
 USER QUESTION: {user_question}
@@ -260,8 +261,16 @@ ANSWER:"""
         # Step 3: Generate response from LLM (Generation)
         answer = self.llm.generate_response(prompt)
         
-        # Step 4: Extract and format sources
-        sources = [page['title'] for page in context_pages]
+        # Step 4: Extract and format sources with URLs
+        sources = []
+        for page in context_pages:
+            title = page['title']
+            # Convert title to MediaWiki URL format (spaces to underscores)
+            page_url = f"{self.config.WIKI_BASE_URL}?title={title.replace(' ', '_')}"
+            sources.append({
+                'title': title,
+                'url': page_url
+            })
         
         # Add metadata about retrieval method used
         retrieval_method = "vector_search" if self.vector_store else "keyword_search"

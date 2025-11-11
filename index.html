@@ -95,6 +95,17 @@
             border-radius: 8px;
         }
         
+        .message-sources a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 0 4px;
+        }
+        
+        .message-sources a:hover {
+            text-decoration: underline;
+        }
+        
         .chat-input-container {
             padding: 20px;
             background: white;
@@ -250,7 +261,15 @@
             if (sources && sources.length > 0) {
                 const sourcesDiv = document.createElement('div');
                 sourcesDiv.className = 'message-sources';
-                sourcesDiv.textContent = `📚 Sources: ${sources.join(', ')}`;
+                sourcesDiv.innerHTML = '📚 Sources: ' + sources.map(source => {
+                    if (typeof source === 'object' && source.url && source.title) {
+                        return `<a href="${source.url}" target="_blank">${source.title}</a>`;
+                    } else if (typeof source === 'object' && source.url) {
+                        return `<a href="${source.url}" target="_blank">${source.url}</a>`;
+                    } else {
+                        return source;
+                    }
+                }).join(', ');
                 contentDiv.appendChild(sourcesDiv);
             }
             
