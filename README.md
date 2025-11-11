@@ -4,27 +4,27 @@ A proof-of-concept chatbot that uses your MediaWiki 1.43 database with a local L
 
 ## Architecture
 
-- **RAG (Retrieval-Augmented Generation)**: 3-stage pipeline for accurate, source-backed answers
-  - **Retrieval**: Hybrid vector + keyword search for relevant wiki pages
-  - **Augmentation**: Context-enriched prompts with source references
-  - **Generation**: LLM generates answers strictly from provided context
 - **Database**: MariaDB (MediaWiki 1.43)
 - **Vector Database**: ChromaDB with sentence-transformers (semantic search)
 - **LLM**: Local Llama model (GGUF format via llama-cpp-python)
 - **Backend**: Python + Flask
 - **Frontend**: Simple HTML/JS interface
+- **RAG (Retrieval-Augmented Generation)**: 3-stage pipeline for accurate, source-backed answers
+  - **Retrieval**: Hybrid vector + keyword search for relevant wiki pages
+  - **Augmentation**: Context-enriched prompts with source references
+  - **Generation**: LLM generates answers strictly from provided context
 
 ## Features
 
-✅ **RAG-powered Q&A**: Retrieval-Augmented Generation for accurate, context-based answers  
 ✅ Query MediaWiki database for relevant content  
 ✅ Semantic search with vector embeddings (ChromaDB)  
 ✅ Use LLM to generate natural language answers  
-✅ Customer service agent persona (cites sources, admits when it doesn't know)  
 ✅ RESTful API with Flask  
 ✅ Web UI and CLI interface  
 ✅ Source attribution (shows which wiki pages were used)  
-✅ Automatic filtering of expired/outdated pages
+✅ Automatic filtering of expired/outdated pages  
+✅ Customer service agent persona (cites sources, admits when it doesn't know)  
+✅ **RAG-powered Q&A**: Retrieval-Augmented Generation for accurate, context-based answers
 
 ## Installation
 
