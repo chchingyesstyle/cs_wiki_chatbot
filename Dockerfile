@@ -31,9 +31,9 @@ EXPOSE 5000 8080
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:5000/health')" || exit 1
+# Health check (increased timeout for slow LLM responses)
+HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:5000/health', timeout=25)" || exit 1
 
 # Default command - can be overridden
 CMD ["python", "app.py"]
