@@ -76,7 +76,8 @@ nano .env  # Add OPENAI_API_KEY
 ```
 
 ### Costs
-- GPT-3.5-turbo: ~$0.0005/1K tokens (cheap)
+- GPT-4o-mini: ~$0.00015/1K tokens (best value, recommended)
+- GPT-3.5-turbo: ~$0.0005/1K tokens (legacy)
 - GPT-4: ~$0.03/1K tokens (premium)
 
 ### Best For
@@ -97,12 +98,14 @@ nano .env  # Add OPENAI_API_KEY
 
 ### Features
 - ✅ One-command deployment
+- ✅ Single-port deployment (8080 only, reverse proxy)
 - ✅ Multi-container architecture
 - ✅ Health checks & auto-restart
 - ✅ Data persistence
 - ✅ Production-ready
 - ✅ Portable across environments
 - ✅ Easy scaling
+- ✅ More secure (API not directly exposed)
 
 ### Requirements
 - Docker 20.10+
@@ -121,10 +124,13 @@ nano .env  # Configure
 
 ### Architecture
 ```
+External Access (Port 8080 only)
+         ↓
 ┌─────────────────┐     ┌─────────────────┐
-│   Web UI        │────▶│   API Server    │
-│   Port 8080     │     │   Port 5000     │
-│   (Container)   │     │   (Container)   │
+│   Web UI +      │────▶│   API Server    │
+│   Reverse Proxy │     │   Port 5000     │
+│   Port 8080     │     │   (INTERNAL)    │
+│   (EXPOSED)     │     │   (Container)   │
 └─────────────────┘     └─────────────────┘
                                │
                                ▼
@@ -132,6 +138,7 @@ nano .env  # Configure
                         │  MediaWiki DB   │
                         │  + OpenAI API   │
                         └─────────────────┘
+Note: Single-port deployment for security
 ```
 
 ### Management

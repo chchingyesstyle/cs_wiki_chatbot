@@ -1,4 +1,14 @@
-# OpenAI Branch Deployment Guide
+# ⚠️ OpenAI Branch Deployment Guide
+
+> **WARNING:** This guide is for the **`openai` branch** ONLY!
+>
+> **If you're using the `docker` branch** (recommended for production), please use:
+> - [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) - Full deployment guide
+> - [DOCKER_QUICKREF.md](DOCKER_QUICKREF.md) - Quick reference
+>
+> This file is kept for reference but is NOT applicable to Docker deployment.
+
+---
 
 ## Overview
 The `openai` branch uses OpenAI API instead of local Llama models for generating responses.
@@ -57,6 +67,11 @@ python3 -c "from openai_model import OpenAIModel; m = OpenAIModel(); m.load_mode
 ✅ Scalable without hardware constraints
 
 ## Cost Considerations
-- GPT-3.5-turbo: ~$0.0005 per 1K tokens (cheap)
-- GPT-4: ~$0.03 per 1K tokens (more expensive but better quality)
+- GPT-4o-mini: ~$0.00015 per 1K tokens (best value, recommended)
+- GPT-3.5-turbo: ~$0.0005 per 1K tokens (legacy)
+- GPT-4: ~$0.03 per 1K tokens (premium quality)
 - Monitor usage at: https://platform.openai.com/usage
+
+---
+
+**For Docker deployment, please see [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)**

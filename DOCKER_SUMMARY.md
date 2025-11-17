@@ -7,7 +7,7 @@
    - Python 3.9 slim base
    - System dependencies (MySQL client)
    - Python packages from requirements.txt
-   - Exposes ports 5000 (API) and 8080 (Web)
+   - Single-port deployment (only 8080 exposed via reverse proxy)
    - Health check endpoint
 
 2. **docker-compose.yml** - Multi-container orchestration
@@ -110,7 +110,7 @@ nano .env  # Set DB credentials and OpenAI API key
 
 # 4. Access
 # Web UI: http://localhost:8080
-# API: http://localhost:5000
+# API: http://localhost:8080/api/chat (proxied)
 ```
 
 ---
@@ -118,13 +118,17 @@ nano .env  # Set DB credentials and OpenAI API key
 ## 📊 Architecture Diagram
 
 ```
+External Network (Port 8080 only)
+         ↓
 ┌─────────────────────────────────────────────────┐
 │                  Docker Host                    │
 │                                                 │
 │  ┌──────────────────┐      ┌─────────────────┐ │
 │  │  Web Container   │      │  API Container  │ │
 │  │  Port 8080      │─────▶│  Port 5000     │ │
+│  │  (EXPOSED)      │      │  (INTERNAL)     │ │
 │  │  serve_web.py   │      │  app.py        │ │
+│  │  Reverse Proxy  │      │                │ │
 │  └──────────────────┘      └─────────────────┘ │
 │           │                        │            │
 │           │                        │            │
@@ -144,6 +148,9 @@ nano .env  # Set DB credentials and OpenAI API key
           │  MediaWiki   │  │  OpenAI API  │
           │  Database    │  │              │
           └──────────────┘  └──────────────┘
+
+Note: API port 5000 is NOT exposed externally - only accessible
+via reverse proxy on port 8080
 ```
 
 ---
@@ -175,16 +182,16 @@ DB_PASSWORD=your_password
 
 # OpenAI (Required)
 OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_MODEL=gpt-4o-mini              # Recommended (better & cheaper)
 
 # Ports (Optional - defaults shown)
-FLASK_PORT=5000
-WEB_SERVER_PORT=8080
+FLASK_PORT=5000                       # Internal API port (not exposed)
+WEB_SERVER_PORT=8080                  # External port (only this exposed)
 
 # Vector Search (Optional)
 USE_VECTOR_SEARCH=True
 VECTOR_DB_PATH=/app/chroma_db
-VECTOR_TOP_K=3
+VECTOR_TOP_K=5                        # Retrieve 5 pages for better coverage
 
 # Wiki URL (Required)
 WIKI_BASE_URL=http://your-wiki-url/index.php
@@ -218,9 +225,10 @@ WIKI_BASE_URL=http://your-wiki-url/index.php
 
 ### Production Server
 ```bash
-# With Nginx reverse proxy
+# With Nginx reverse proxy (if needed)
 ./docker-start.sh
-# Configure Nginx to proxy to ports 5000/8080
+# Configure Nginx to proxy to port 8080
+# API and Web are already combined on single port
 ```
 
 ### Cloud (AWS/GCP/Azure)
@@ -260,9 +268,12 @@ print('OK' if db.connect() else 'FAILED')
 
 ### Port already in use
 ```bash
-# Change ports in .env
+# Check what's using port 8080
+sudo lsof -i :8080
+
+# Change port in .env if needed
 nano .env
-# Update FLASK_PORT and WEB_SERVER_PORT
+# Update WEB_SERVER_PORT (only port exposed)
 ./docker-restart.sh
 ```
 
@@ -308,12 +319,12 @@ rm -rf chroma_db/*
 
 After successful deployment:
 
-✅ Both containers running  
-✅ API health check passing  
-✅ Web UI accessible at port 8080  
-✅ API accessible at port 5000  
-✅ ChromaDB data persisted  
-✅ Logs available via docker-logs.sh  
+✅ Both containers running
+✅ API health check passing
+✅ Web UI accessible at port 8080
+✅ API accessible at port 8080/api/chat (proxied)
+✅ ChromaDB data persisted
+✅ Logs available via docker-logs.sh
 ✅ Auto-restart on failure working  
 
 ---

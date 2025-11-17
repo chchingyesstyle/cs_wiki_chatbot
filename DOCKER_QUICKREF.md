@@ -24,8 +24,10 @@ nano .env  # Configure your settings
 
 ### Access URLs
 - Web UI: http://localhost:8080
-- API: http://localhost:5000
-- Health: http://localhost:5000/health
+- API: http://localhost:8080/api/chat (proxied)
+- Health: http://localhost:8080/health (proxied)
+
+**Note:** Only port 8080 is exposed. API accessed via reverse proxy for security.
 
 ## 📋 Configuration (.env)
 
@@ -43,9 +45,9 @@ OPENAI_API_KEY=sk-...your_key_here
 
 ### Optional Settings
 ```bash
-OPENAI_MODEL=gpt-3.5-turbo    # or gpt-4
-FLASK_PORT=5000               # API port
-WEB_SERVER_PORT=8080          # Web UI port
+OPENAI_MODEL=gpt-4o-mini      # Recommended (cheaper & better than gpt-3.5)
+FLASK_PORT=5000               # Internal API port (not exposed)
+WEB_SERVER_PORT=8080          # External port (only this exposed)
 USE_VECTOR_SEARCH=True        # Enable semantic search
 ```
 
@@ -115,8 +117,8 @@ docker exec -it cs-wiki-chatbot-api python index_wiki.py
 # Check logs
 ./docker-logs.sh
 
-# Check ports
-sudo netstat -tuln | grep -E '5000|8080'
+# Check ports (only 8080 should be exposed)
+sudo netstat -tuln | grep 8080
 
 # Rebuild
 docker-compose down
@@ -153,15 +155,14 @@ cat .env | grep OPENAI_API_KEY
 
 ### Port Already in Use
 ```bash
-# Find process using port
-sudo lsof -i :5000
+# Find process using port (only 8080 is exposed)
 sudo lsof -i :8080
 
 # Kill process
 sudo kill -9 <PID>
 
-# Or change ports in .env
-nano .env  # Change FLASK_PORT and WEB_SERVER_PORT
+# Or change port in .env
+nano .env  # Change WEB_SERVER_PORT
 ```
 
 ### Clear All Data
@@ -190,8 +191,8 @@ rm -rf chroma_db/*
 # Container stats
 docker stats
 
-# Health check
-curl http://localhost:5000/health
+# Health check (via proxy on port 8080)
+curl http://localhost:8080/health
 ```
 
 ### View Resource Usage
@@ -229,14 +230,16 @@ nano requirements.txt
    - `.env.development`
    - `.env.production`
 
-2. **Enable HTTPS with Nginx**
+2. **Enable HTTPS with Nginx** (Single port - 8080 only)
    ```nginx
    server {
        listen 443 ssl;
        server_name chatbot.yourdomain.com;
-       
+
        location / {
            proxy_pass http://localhost:8080;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
        }
    }
    ```
