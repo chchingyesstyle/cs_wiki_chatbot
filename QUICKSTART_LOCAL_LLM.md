@@ -74,15 +74,17 @@ MODEL_GPU_LAYERS=0      # Set to 35 for GPU
 
 ### 5. Build and Start
 ```bash
-# Build Docker images (10-15 minutes first time)
+# Build Docker image (10-15 minutes first time)
 ./docker-build.sh
 
-# Start services (2-5 minutes to load model)
+# Start services (uses pre-built image, 2-5 minutes to load model)
 ./docker-start.sh
 
 # Check status
 ./docker-status.sh
 ```
+
+**Note**: docker-compose uses pre-built image for faster startups.
 
 ### 6. Access
 ```bash

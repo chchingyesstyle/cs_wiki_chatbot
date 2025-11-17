@@ -1,6 +1,6 @@
 services:
   chatbot-api:
-    build: .
+    image: cs-wiki-chatbot:latest
     container_name: cs-wiki-chatbot-api
     # Port 5000 NOT exposed externally - only accessible via internal network
     expose:
@@ -22,7 +22,7 @@ services:
       - chatbot-network
 
   chatbot-web:
-    build: .
+    image: cs-wiki-chatbot:latest
     container_name: cs-wiki-chatbot-web
     command: python serve_web.py
     ports:

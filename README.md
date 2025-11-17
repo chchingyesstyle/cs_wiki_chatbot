@@ -100,12 +100,14 @@ WIKI_BASE_URL=http://your-wiki-url/index.php
 ### 4. Build and Start
 
 ```bash
-# Build Docker images (this may take 10-15 minutes)
+# Build Docker image (this may take 10-15 minutes first time)
 ./docker-build.sh
 
-# Start services
+# Start services (uses pre-built image)
 ./docker-start.sh
 ```
+
+**Note**: `docker-compose.yml` uses `image: cs-wiki-chatbot:latest` instead of `build: .` for faster startups. Always run `./docker-build.sh` first to create the image.
 
 **First startup will be slow** (2-5 minutes) as the model loads into memory.
 
@@ -283,7 +285,7 @@ cs_wiki_chatbot/
 ├── config.py                        # Local LLM configs (UPDATED)
 ├── requirements.txt                 # Added llama-cpp-python
 ├── Dockerfile                       # Added model directory
-├── docker-compose.yml               # Mounts ./models directory
+├── docker-compose.yml               # Uses pre-built image
 └── .env.example                     # Local LLM config template
 ```
 
