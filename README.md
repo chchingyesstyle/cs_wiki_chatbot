@@ -6,13 +6,15 @@ A proof-of-concept chatbot that uses your MediaWiki 1.43 database with OpenAI AP
 
 This branch provides a **production-ready Docker deployment** with:
 
-✅ **One-command deployment** - Simple shell scripts for all operations  
-✅ **Multi-container architecture** - Separate API and Web containers  
-✅ **Health checks** - Automatic service monitoring  
-✅ **Data persistence** - Mounted volumes for ChromaDB and logs  
-✅ **Environment-based configuration** - Easy to customize via `.env`  
-✅ **Auto-restart** - Containers restart on failure  
-✅ **Portable** - Deploy anywhere Docker runs  
+✅ **Single-port deployment** - Only port 8080 exposed (reverse proxy architecture)
+✅ **One-command deployment** - Simple shell scripts for all operations
+✅ **Multi-container architecture** - Separate API and Web containers
+✅ **Health checks** - Automatic service monitoring
+✅ **Data persistence** - Mounted volumes for ChromaDB and logs
+✅ **Environment-based configuration** - Easy to customize via `.env`
+✅ **Auto-restart** - Containers restart on failure
+✅ **Portable** - Deploy anywhere Docker runs
+✅ **Secure** - API not directly exposed externally  
 
 ## 🚀 Quick Start (Docker)
 
@@ -32,10 +34,12 @@ nano .env  # Add your database credentials and OpenAI API key
 
 # 4. Access
 # Web UI: http://localhost:8080
-# API: http://localhost:5000
+# API: http://localhost:8080/api/chat (proxied through port 8080)
 ```
 
 **That's it!** 🎉
+
+**Note:** Only port 8080 needs to be exposed. The API is accessed via reverse proxy on the same port for better security.
 
 ## 📚 Full Documentation
 
@@ -46,9 +50,13 @@ nano .env  # Add your database credentials and OpenAI API key
 
 - **Database**: MariaDB (MediaWiki 1.43)
 - **Vector Database**: ChromaDB with sentence-transformers (semantic search)
-- **LLM**: OpenAI API (GPT-3.5-turbo or GPT-4)
+- **LLM**: OpenAI API (gpt-4o-mini)
 - **Backend**: Python + Flask
 - **Frontend**: Simple HTML/JS interface
+- **Reverse Proxy**: Single-port deployment (port 8080 only)
+  - Web server proxies `/api/*` requests to internal API container
+  - API container (port 5000) not exposed externally
+  - More secure production architecture
 - **RAG (Retrieval-Augmented Generation)**: 3-stage pipeline for accurate, source-backed answers
   - **Retrieval**: Hybrid vector + keyword search for relevant wiki pages
   - **Augmentation**: Context-enriched prompts with source references
@@ -226,6 +234,41 @@ Update these values in `.env`:
 
 </details>
 
+## 🔐 Single-Port Deployment Architecture
+
+The Docker deployment uses a **reverse proxy pattern** for enhanced security and simplified networking:
+
+```
+External Access (Port 8080 only)
+         ↓
+   Web Container (serve_web.py)
+         ├─→ Static Files (HTML/CSS/JS)
+         └─→ /api/* → Reverse Proxy
+                 ↓
+         Internal Docker Network
+                 ↓
+   API Container (Port 5000 - NOT EXPOSED)
+```
+
+### Benefits
+
+✅ **Single Port**: Only expose port 8080 in firewall
+✅ **More Secure**: API not directly accessible from outside
+✅ **Simpler Configuration**: One port to manage
+✅ **Production Ready**: Industry-standard reverse proxy pattern
+✅ **No CORS Issues**: Same origin for web and API
+
+### How It Works
+
+1. Browser accesses `http://your-server:8080`
+2. Web container serves HTML/JS files
+3. JavaScript makes API calls to `/api/chat` (same port)
+4. Web container proxies requests to internal API container
+5. API processes request and returns response
+6. Web container forwards response to browser
+
+**Note:** Port 5000 is only accessible within the Docker internal network, not from the host or external networks.
+
 ## Usage (Docker)
 
 ### Start Services
@@ -249,9 +292,9 @@ Update these values in `.env`:
 ```
 
 ### Access Interfaces
-- **Web UI**: Open browser to http://localhost:8080
-- **API**: http://localhost:5000
-- **Health Check**: http://localhost:5000/health
+- **Web UI**: http://localhost:8080
+- **API**: http://localhost:8080/api/chat (proxied)
+- **Health Check**: http://localhost:8080/health (proxied)
 
 ## Usage (Manual)
 

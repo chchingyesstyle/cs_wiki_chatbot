@@ -4,8 +4,9 @@ services:
   chatbot-api:
     build: .
     container_name: cs-wiki-chatbot-api
-    ports:
-      - "${FLASK_PORT:-5000}:5000"
+    # Port 5000 NOT exposed externally - only accessible via internal network
+    expose:
+      - "5000"
     env_file:
       - .env
     volumes:
@@ -29,6 +30,9 @@ services:
       - "${WEB_SERVER_PORT:-8080}:8080"
     env_file:
       - .env
+    environment:
+      - API_HOST=chatbot-api
+      - FLASK_PORT=${FLASK_PORT:-5000}
     depends_on:
       chatbot-api:
         condition: service_healthy

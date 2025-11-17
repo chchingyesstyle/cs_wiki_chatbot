@@ -1,6 +1,6 @@
 # CS Wiki Chatbot - Docker Deployment Guide
 
-Complete guide for deploying the CS Wiki Chatbot using Docker containers.
+Complete guide for deploying the CS Wiki Chatbot using Docker containers with **single-port reverse proxy architecture**.
 
 ## 📋 Prerequisites
 
@@ -65,8 +65,8 @@ OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-3.5-turbo
 
 # Ports (optional, defaults shown)
-FLASK_PORT=5000
-WEB_SERVER_PORT=8080
+FLASK_PORT=5000              # Internal API port (not exposed externally)
+WEB_SERVER_PORT=8080         # External port (only this port is exposed)
 
 # Wiki URL
 WIKI_BASE_URL=http://your-wiki-url/index.php
@@ -84,28 +84,51 @@ WIKI_BASE_URL=http://your-wiki-url/index.php
 
 ### 5. Access the Chatbot
 - **Web UI**: http://localhost:8080
-- **API**: http://localhost:5000
-- **API Health Check**: http://localhost:5000/health
+- **API**: http://localhost:8080/api/chat (proxied through port 8080)
+- **Health Check**: http://localhost:8080/health (proxied through port 8080)
 
-## 📦 Docker Architecture
+**Note:** Only port 8080 is exposed. The API (port 5000) is NOT accessible externally for security.
 
-The deployment consists of 2 containers:
+## 📦 Docker Architecture - Single-Port Reverse Proxy
+
+The deployment uses a **reverse proxy pattern** with 2 containers:
+
+```
+External Network (Port 8080 only)
+         ↓
+┌──────────────────────────────────────┐
+│  chatbot-web (Reverse Proxy)         │
+│  - Serves HTML/JS on port 8080       │
+│  - Proxies /api/* to API container   │
+│  - ONLY exposed port                 │
+└─────────────┬────────────────────────┘
+              ↓ Internal Docker Network
+┌──────────────────────────────────────┐
+│  chatbot-api (Flask API)             │
+│  - Runs on port 5000 internally      │
+│  - NOT exposed externally            │
+│  - Database + OpenAI integration     │
+└──────────────────────────────────────┘
+```
 
 ### Container 1: API Server (`chatbot-api`)
-- Runs Flask REST API on port 5000
+- Runs Flask REST API on port 5000 (internal only)
 - Handles chat requests and database queries
-- Connects to OpenAI API
+- Connects to OpenAI API (gpt-4o-mini)
 - Includes health check endpoint
+- **NOT exposed externally** - only accessible via Docker network
 
-### Container 2: Web Server (`chatbot-web`)
-- Serves HTML/JS interface on port 8080
-- Automatically configures API endpoint
-- Lightweight HTTP server
+### Container 2: Web Server + Reverse Proxy (`chatbot-web`)
+- Serves HTML/JS interface on port 8080 (EXPOSED)
+- **Reverse proxies `/api/*` and `/health` to API container**
+- Lightweight HTTP server with proxy functionality
+- **ONLY externally accessible port**
 
 ### Networking
 - Both containers communicate via `chatbot-network`
 - Web container depends on API health check
-- Ports are configurable via `.env`
+- API port 5000 is NOT exposed to host
+- All external access goes through port 8080
 
 ### Data Persistence
 - `chroma_db/` - Vector database (mounted volume)
