@@ -9,6 +9,7 @@ This repository has multiple branches for different deployment scenarios. Choose
 | **main** | Local Llama model | Privacy-focused, offline | 4GB+ RAM, Model file |
 | **openai** | OpenAI API integration | Quick setup, better quality | OpenAI API key |
 | **docker** | Dockerized OpenAI version | Production deployment | Docker, API key |
+| **docker-local-llm** ⭐ | Dockerized Local LLM | Privacy + Easy deployment | Docker, 8GB+ RAM, Model file |
 
 ---
 
@@ -164,6 +165,80 @@ Note: Single-port deployment for security
 
 ---
 
+## 🌿 Branch: `docker-local-llm` ⭐ **NEW**
+
+**Dockerized Local LLM Deployment**
+
+### Features
+- ✅ Docker-based deployment (easy setup)
+- ✅ 100% local LLM (no external API)
+- ✅ Privacy-focused (no data sent externally)
+- ✅ Zero per-request costs
+- ✅ Supports GGUF models (Llama-2, Mistral, etc)
+- ✅ CPU and GPU support
+- ✅ Single-port deployment (secure)
+- ✅ Works offline (after setup)
+
+### Requirements
+- Docker 20.10+
+- Docker Compose 1.29+
+- 8GB+ RAM (16GB recommended)
+- 10-15GB disk space (for models)
+- MediaWiki database access
+
+### Setup
+```bash
+git checkout docker-local-llm
+
+# Download model (automatic)
+./download-model.sh
+
+# Or manual download
+mkdir -p models
+cd models
+wget https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf
+cd ..
+
+# Configure
+cp .env.example .env
+nano .env  # Set DB credentials and MODEL_PATH
+
+# Build and start
+./docker-build.sh
+./docker-start.sh
+```
+
+### Configuration
+```bash
+# Model settings in .env
+MODEL_PATH=/app/models/llama-2-7b-chat.Q4_K_M.gguf
+MODEL_CONTEXT_LENGTH=4096
+MODEL_MAX_TOKENS=512
+MODEL_TEMPERATURE=0.7
+MODEL_THREADS=4
+MODEL_GPU_LAYERS=0  # Set to 35 for GPU acceleration
+```
+
+### Best For
+- **Privacy-sensitive deployments** 🔒
+- High-volume usage (cost savings)
+- Offline/air-gapped environments
+- HIPAA/GDPR compliance needed
+- No API vendor lock-in
+- Self-hosted infrastructure
+
+### Performance
+- **Response time**: 5-10 seconds (CPU), 2-3 seconds (GPU)
+- **Quality**: Good (comparable to gpt-3.5-turbo)
+- **Cost**: Free after setup
+- **Scalability**: Limited by hardware
+
+### Documentation
+- [README_LOCAL_LLM.md](https://github.com/chchingyesstyle/cs_wiki_chatbot/blob/docker-local-llm/README_LOCAL_LLM.md) - Complete guide
+- [QUICKSTART_LOCAL_LLM.md](https://github.com/chchingyesstyle/cs_wiki_chatbot/blob/docker-local-llm/QUICKSTART_LOCAL_LLM.md) - Quick setup
+
+---
+
 ## 🤔 Which Branch Should I Use?
 
 ### Use **`main`** if:
@@ -188,7 +263,17 @@ Note: Single-port deployment for security
 - ✅ Need to deploy to cloud
 - ✅ Want simple management
 - ✅ Need scalability
+- ✅ Okay with API costs
 - **👉 RECOMMENDED for most users**
+
+### Use **`docker-local-llm`** if: 🔒
+- ✅ Privacy is critical (HIPAA/GDPR)
+- ✅ High volume usage (cost savings)
+- ✅ Offline/air-gapped deployment
+- ✅ Want Docker ease + local LLM
+- ✅ Have adequate hardware (8GB+ RAM)
+- ✅ No vendor lock-in desired
+- **👉 BEST for privacy-focused deployments**
 
 ---
 
@@ -209,6 +294,9 @@ git checkout openai
 
 # Switch to docker
 git checkout docker
+
+# Switch to docker-local-llm (NEW)
+git checkout docker-local-llm
 ```
 
 ### Compare Branches
@@ -222,16 +310,16 @@ git diff openai..docker
 
 ## 📦 Installation Comparison
 
-| Step | main | openai | docker |
-|------|------|--------|--------|
-| Clone repo | ✅ | ✅ | ✅ |
-| Install Docker | ❌ | ❌ | ✅ |
-| Install Python deps | ✅ | ✅ | ❌ (in container) |
-| Download model | ✅ (2-7GB) | ❌ | ❌ |
-| Configure .env | ✅ | ✅ | ✅ |
-| Get API key | ❌ | ✅ | ✅ |
-| Build images | ❌ | ❌ | ✅ |
-| Start services | `./start.sh` | `./start.sh` | `./docker-start.sh` |
+| Step | main | openai | docker | docker-local-llm |
+|------|------|--------|--------|------------------|
+| Clone repo | ✅ | ✅ | ✅ | ✅ |
+| Install Docker | ❌ | ❌ | ✅ | ✅ |
+| Install Python deps | ✅ | ✅ | ❌ (in container) | ❌ (in container) |
+| Download model | ✅ (2-7GB) | ❌ | ❌ | ✅ (4-7GB) |
+| Configure .env | ✅ | ✅ | ✅ | ✅ |
+| Get API key | ❌ | ✅ | ✅ | ❌ |
+| Build images | ❌ | ❌ | ✅ | ✅ |
+| Start services | `./start.sh` | `./start.sh` | `./docker-start.sh` | `./docker-start.sh` |
 
 ---
 
@@ -267,6 +355,18 @@ cd cs_wiki_chatbot
 git checkout docker
 cp .env.example .env
 nano .env  # Configure
+./docker-build.sh
+./docker-start.sh
+```
+
+### Docker-Local-LLM Branch 🔒
+```bash
+git clone https://github.com/chchingyesstyle/cs_wiki_chatbot.git
+cd cs_wiki_chatbot
+git checkout docker-local-llm
+./download-model.sh  # Download Llama-2-7B-Chat
+cp .env.example .env
+nano .env  # Configure DB and MODEL_PATH
 ./docker-build.sh
 ./docker-start.sh
 ```
