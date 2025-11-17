@@ -39,3 +39,6 @@ build/
 
 # Vector database
 chroma_db/
+
+# Backup files
+backup_*.tar.gz
