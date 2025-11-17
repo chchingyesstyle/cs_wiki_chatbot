@@ -1,6 +1,46 @@
-# MediaWiki Chatbot PoC (OpenAI Version)
+# MediaWiki Chatbot PoC (Docker Version)
 
-A proof-of-concept chatbot that uses your MediaWiki 1.43 database with OpenAI API to answer questions about your wiki content.
+A proof-of-concept chatbot that uses your MediaWiki 1.43 database with OpenAI API to answer questions about your wiki content. **Fully containerized with Docker for easy deployment.**
+
+## 🐳 Docker Deployment
+
+This branch provides a **production-ready Docker deployment** with:
+
+✅ **One-command deployment** - Simple shell scripts for all operations  
+✅ **Multi-container architecture** - Separate API and Web containers  
+✅ **Health checks** - Automatic service monitoring  
+✅ **Data persistence** - Mounted volumes for ChromaDB and logs  
+✅ **Environment-based configuration** - Easy to customize via `.env`  
+✅ **Auto-restart** - Containers restart on failure  
+✅ **Portable** - Deploy anywhere Docker runs  
+
+## 🚀 Quick Start (Docker)
+
+```bash
+# 1. Clone and checkout docker branch
+git clone https://github.com/chchingyesstyle/cs_wiki_chatbot.git
+cd cs_wiki_chatbot
+git checkout docker
+
+# 2. Configure environment
+cp .env.example .env
+nano .env  # Add your database credentials and OpenAI API key
+
+# 3. Build and start
+./docker-build.sh
+./docker-start.sh
+
+# 4. Access
+# Web UI: http://localhost:8080
+# API: http://localhost:5000
+```
+
+**That's it!** 🎉
+
+## 📚 Full Documentation
+
+- **[DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)** - Complete Docker deployment guide
+- **[README.md](#features)** - Feature overview and architecture (below)
 
 ## Architecture
 
@@ -27,7 +67,23 @@ A proof-of-concept chatbot that uses your MediaWiki 1.43 database with OpenAI AP
 ✅ Customer service agent persona (admits when it doesn't know)  
 ✅ **RAG-powered Q&A**: Retrieval-Augmented Generation for accurate, context-based answers
 
-## Installation
+## Installation (Docker - Recommended)
+
+See **[DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)** for complete Docker deployment guide.
+
+**Quick Docker Setup:**
+```bash
+git checkout docker
+cp .env.example .env
+nano .env  # Configure
+./docker-build.sh
+./docker-start.sh
+```
+
+## Installation (Manual - Advanced Users)
+
+<details>
+<summary>Click to expand manual installation instructions</summary>
 
 ### 1. Install Dependencies
 
@@ -56,7 +112,39 @@ Update these values in `.env`:
 - `OPENAI_MODEL` - Model to use (e.g., gpt-3.5-turbo, gpt-4)
 - `WIKI_BASE_URL` - Your MediaWiki base URL (e.g., http://172.17.7.95/cswikiuat/index.php)
 
-## Usage
+</details>
+
+## Usage (Docker)
+
+### Start Services
+```bash
+./docker-start.sh
+```
+
+### Stop Services
+```bash
+./docker-stop.sh
+```
+
+### Check Status
+```bash
+./docker-status.sh
+```
+
+### View Logs
+```bash
+./docker-logs.sh
+```
+
+### Access Interfaces
+- **Web UI**: Open browser to http://localhost:8080
+- **API**: http://localhost:5000
+- **Health Check**: http://localhost:5000/health
+
+## Usage (Manual)
+
+<details>
+<summary>Click to expand manual usage instructions</summary>
 
 ### Option 1: Web Interface (Recommended)
 
@@ -252,10 +340,21 @@ VECTOR_TOP_K=3
 
 Run `index_wiki.py` again whenever wiki content changes significantly.
 
-## Quick Start Scripts
+</details>
 
-Use the provided convenience scripts to manage the chatbot:
+## Management Scripts
 
+### Docker (Recommended)
+```bash
+./docker-build.sh    # Build Docker images
+./docker-start.sh    # Start all services
+./docker-stop.sh     # Stop all services
+./docker-restart.sh  # Restart all services
+./docker-status.sh   # Check service status
+./docker-logs.sh     # View logs
+```
+
+### Manual Deployment
 ```bash
 ./start.sh    # Start the chatbot and web server
 ./stop.sh     # Stop all services
