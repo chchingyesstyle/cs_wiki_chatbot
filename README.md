@@ -1,605 +1,351 @@
-# CS Wiki Chatbot
+# CS Wiki Chatbot - Local LLM (docker-local-llm branch)
 
-**An intelligent chatbot that answers questions about your MediaWiki content using OpenAI and semantic search.**
+**Self-hosted chatbot with local LLM - no external API required!**
 
-Transform your wiki into an interactive Q&A system. Ask questions in natural language, get accurate answers with source citations.
+This branch uses **llama-cpp-python** to run local LLM models (like Llama-2-7B-Chat) instead of OpenAI API.
 
 ---
 
-## 🎯 What Does It Do?
+## 🎯 Key Differences from `docker` Branch
 
-```
-User asks: "What is YesAsia?"
-         ↓
-    [Chatbot]
-         ↓
-1. Searches your wiki for relevant pages (semantic search)
-2. Sends context to OpenAI (gpt-4o-mini)
-3. Returns answer with source links
-         ↓
-Answer: "YesAsia is an online retailer specializing in Asian
-entertainment products..."
+| Feature | docker branch | docker-local-llm branch |
+|---------|---------------|-------------------------|
+| **LLM Backend** | OpenAI API (gpt-4o-mini) | Local GGUF models |
+| **API Key Required** | ✅ Yes (OpenAI) | ❌ No |
+| **Internet Required** | ✅ Yes (for API calls) | ❌ No (after setup) |
+| **Cost per Request** | ~$0.00015/1K tokens | 🆓 Free |
+| **Privacy** | Data sent to OpenAI | 🔒 100% Local |
+| **Hardware Requirements** | Minimal (2GB RAM) | Higher (8GB+ RAM recommended) |
+| **Model Size** | N/A | ~4-7GB per model |
+| **Response Speed** | Fast (~1-2s) | Slower (~5-10s, depends on CPU) |
 
-Sources:
-📄 YesAsia Overview (http://wiki/YesAsia)
-📄 Online Retailers Guide (http://wiki/Retailers)
-```
+---
 
-**Key Benefits:**
-- 🎯 **Accurate**: Only answers from your wiki content (no hallucinations)
-- 🔗 **Transparent**: Shows source pages for every answer
-- 🚀 **Fast**: Semantic search finds relevant info instantly
-- 🔒 **Secure**: Single-port deployment, API not exposed
-- 🐳 **Easy**: One-command Docker deployment
+## 📋 Prerequisites
+
+- Docker & Docker Compose installed
+- **At least 8GB RAM** (16GB recommended)
+- **10-15GB free disk space** (for model files)
+- MediaWiki database access
+- CPU with AVX2 support (most modern CPUs)
+
+**Optional (for faster inference):**
+- NVIDIA GPU with CUDA support
+- 6GB+ VRAM for GPU acceleration
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Docker & Docker Compose installed
-- OpenAI API key ([get one here](https://platform.openai.com/))
-- MediaWiki database access
+### 1. Download Model File
 
-### Deploy in 4 Steps
+First, download a GGUF format model. Recommended models:
+
+**Option A: Llama-2-7B-Chat (Recommended)**
+```bash
+# Create models directory
+mkdir -p models
+
+# Download from HuggingFace
+cd models
+wget https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf
+cd ..
+```
+
+**Option B: Other models**
+- Browse: https://huggingface.co/TheBloke (search for GGUF models)
+- Choose Q4_K_M or Q5_K_M quantization for good balance
+- Download to `./models/` directory
+
+### 2. Clone Repository
 
 ```bash
-# 1. Clone repository
 git clone https://github.com/chchingyesstyle/cs_wiki_chatbot.git
 cd cs_wiki_chatbot
-git checkout docker
-
-# 2. Configure
-cp .env.example .env
-nano .env  # Add DB credentials and OpenAI API key
-
-# 3. Build and start
-./docker-build.sh
-./docker-start.sh
-
-# 4. Open browser
-# http://localhost:8080
+git checkout docker-local-llm
 ```
 
-**That's it! Your chatbot is ready.** 🎉
-
----
-
-## 🏗️ Architecture
-
-### System Design
-
-```
-┌─────────────────────────────────────────────────────┐
-│                    User Browser                     │
-│              http://localhost:8080                  │
-└────────────────────┬────────────────────────────────┘
-                     │ Port 8080 (only exposed port)
-                     ↓
-┌────────────────────────────────────────────────────┐
-│              Docker Container 1                    │
-│            Web Server + Reverse Proxy              │
-│  ┌──────────────────────────────────────────────┐ │
-│  │ Serves: HTML/CSS/JS                          │ │
-│  │ Proxies: /api/* → Internal API Container    │ │
-│  └──────────────────────────────────────────────┘ │
-└────────────────────┬───────────────────────────────┘
-                     │ Internal Docker Network
-                     ↓
-┌────────────────────────────────────────────────────┐
-│              Docker Container 2                    │
-│                  Flask API                         │
-│  ┌──────────────────────────────────────────────┐ │
-│  │ 1. Receives question                         │ │
-│  │ 2. Searches ChromaDB (vector search)         │ │
-│  │ 3. Retrieves wiki pages from MediaWiki DB    │ │
-│  │ 4. Sends context to OpenAI API               │ │
-│  │ 5. Returns answer + sources                  │ │
-│  └──────────────────────────────────────────────┘ │
-└───┬────────────────────────────────────────┬───────┘
-    │                                        │
-    ↓                                        ↓
-┌─────────────┐                      ┌──────────────┐
-│  MediaWiki  │                      │  OpenAI API  │
-│  Database   │                      │ (gpt-4o-mini)│
-│  (MariaDB)  │                      └──────────────┘
-└─────────────┘
-    ↓
-┌─────────────┐
-│  ChromaDB   │
-│ (vectors)   │
-└─────────────┘
-```
-
-### Technology Stack
-
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **Frontend** | HTML/CSS/JavaScript | User interface |
-| **Web Server** | Python HTTP + Proxy | Serves UI, proxies API requests |
-| **API** | Flask (Python) | REST API, orchestrates workflow |
-| **Vector DB** | ChromaDB | Semantic search with embeddings |
-| **LLM** | OpenAI gpt-4o-mini | Natural language generation |
-| **Database** | MariaDB | MediaWiki 1.43 database |
-| **Embeddings** | sentence-transformers | Convert text to vectors |
-| **Container** | Docker + Compose | Deployment & orchestration |
-
-### RAG (Retrieval-Augmented Generation) Pipeline
-
-1. **🔍 Retrieval**
-   - User asks a question
-   - Vector search finds semantically similar wiki pages
-   - Returns top 5 most relevant pages
-
-2. **📝 Augmentation**
-   - Combines retrieved pages with user question
-   - Creates context-rich prompt for OpenAI
-   - Includes source references
-
-3. **🤖 Generation**
-   - OpenAI generates answer from context only
-   - Formats response with source links
-   - Returns "I don't know" if context insufficient
-
-**Why RAG?**
-- ✅ Prevents hallucinations (only uses your wiki content)
-- ✅ Always cites sources
-- ✅ Works with your specific domain knowledge
-- ✅ No need to fine-tune models
-
----
-
-## ✨ Features
-
-### Core Features
-- ✅ **Natural Language Q&A** - Ask questions in plain English
-- ✅ **Semantic Search** - Finds relevant pages even without exact keyword matches
-- ✅ **Source Attribution** - Shows which wiki pages were used
-- ✅ **Clickable Links** - Direct links to source wiki pages
-- ✅ **Smart Filtering** - Automatically skips redirects and outdated pages
-- ✅ **Context-Aware** - Understands your domain through wiki content
-
-### Technical Features
-- ✅ **Single-Port Deployment** - Only port 8080 exposed (more secure)
-- ✅ **Health Checks** - Automatic monitoring and restart
-- ✅ **Data Persistence** - Vector DB and logs survive restarts
-- ✅ **RESTful API** - Easy integration with other systems
-- ✅ **Docker-Based** - Portable, consistent deployment
-- ✅ **Environment Config** - All settings via `.env` file
-
-### Quality Features
-- ✅ **High-Quality Model** - Uses gpt-4o-mini (better than gpt-3.5, 70% cheaper)
-- ✅ **Improved Retrieval** - Retrieves 5 pages for better coverage
-- ✅ **Clean Indexing** - Only indexes pages with real content
-- ✅ **Creative Responses** - Tuned for natural, conversational answers
-
----
-
-## 📖 Usage
-
-### Web Interface (Recommended)
-
-1. **Start the chatbot**
-   ```bash
-   ./docker-start.sh
-   ```
-
-2. **Open browser**
-   ```
-   http://localhost:8080
-   ```
-
-3. **Ask questions**
-   - Type your question in the chat box
-   - Get answers with source links
-   - Click sources to view original wiki pages
-
-### API Interface
-
-**POST** `/api/chat`
+### 3. Configure Environment
 
 ```bash
-curl -X POST http://localhost:8080/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is YesAsia?"}'
+# Copy example config
+cp .env.example .env
+
+# Edit configuration
+nano .env
 ```
 
-**Response:**
-```json
-{
-  "question": "What is YesAsia?",
-  "answer": "YesAsia is an online retailer specializing in...",
-  "sources": [
-    {
-      "title": "YesAsia Overview",
-      "url": "http://wiki/index.php?title=YesAsia"
-    }
-  ],
-  "context_used": true
-}
-```
-
-### Management Commands
-
-| Command | Purpose |
-|---------|---------|
-| `./docker-start.sh` | Start all services |
-| `./docker-stop.sh` | Stop all services |
-| `./docker-restart.sh` | Restart services |
-| `./docker-status.sh` | Check status |
-| `./docker-logs.sh` | View logs |
-| `./docker-build.sh` | Rebuild containers |
-
----
-
-## ⚙️ Configuration
-
-### Required Settings (`.env`)
+**Required settings in `.env`:**
 
 ```bash
 # Database Configuration
-DB_HOST=your-database-host.com
+DB_HOST=your_database_host
 DB_PORT=3306
 DB_NAME=your_wiki_database
-DB_USER=your_db_username
+DB_USER=your_db_user
 DB_PASSWORD=your_db_password
 
-# OpenAI API
-OPENAI_API_KEY=sk-your-api-key-here
-OPENAI_MODEL=gpt-4o-mini
+# Local LLM Configuration
+MODEL_PATH=/app/models/llama-2-7b-chat.Q4_K_M.gguf
+MODEL_CONTEXT_LENGTH=4096
+MODEL_MAX_TOKENS=512
+MODEL_TEMPERATURE=0.7
+MODEL_THREADS=4
+MODEL_GPU_LAYERS=0  # Set to 35 for GPU acceleration
 
 # Wiki URL
 WIKI_BASE_URL=http://your-wiki-url/index.php
 ```
 
-### Optional Settings
+### 4. Build and Start
 
 ```bash
-# Port Configuration
-WEB_SERVER_PORT=8080          # External port (only this is exposed)
-FLASK_PORT=5000               # Internal API port (not exposed)
+# Build Docker images (this may take 10-15 minutes)
+./docker-build.sh
 
-# OpenAI Model Tuning
-OPENAI_MAX_TOKENS=1024        # Response length (default: 1024)
-OPENAI_TEMPERATURE=0.9        # Creativity (0.0-1.0, default: 0.9)
-
-# Vector Search
-USE_VECTOR_SEARCH=True        # Enable semantic search
-VECTOR_DB_PATH=/app/chroma_db # Storage location
-VECTOR_TOP_K=5                # Number of pages to retrieve
+# Start services
+./docker-start.sh
 ```
 
-### Model Recommendations
+**First startup will be slow** (2-5 minutes) as the model loads into memory.
 
-| Model | Cost (per 1M tokens) | Quality | Speed | Best For |
-|-------|---------------------|---------|-------|----------|
-| **gpt-4o-mini** ⭐ | $0.15 / $0.60 | Excellent | Fast | **Recommended** - Best value |
-| gpt-3.5-turbo | $0.50 / $1.50 | Good | Very Fast | Budget option (legacy) |
-| gpt-4 | $30.00 / $60.00 | Best | Slower | Premium quality needed |
+### 5. Access Chatbot
 
-> **Recommendation:** Use `gpt-4o-mini` - it's better quality than gpt-3.5-turbo and 70% cheaper.
+- **Web UI**: http://localhost:8080
+- **Health Check**: http://localhost:8080/health
 
 ---
 
-## 🔄 Reindexing Vector Database
+## ⚙️ Configuration Guide
 
-### When to Reindex
-
-Run reindexing when:
-- First-time setup
-- Wiki content significantly updated
-- Pages added/deleted
-- Vector search returning poor results
-
-### How to Reindex
+### Model Settings
 
 ```bash
-# Docker deployment
-docker exec -it cs-wiki-chatbot-api python index_wiki.py
+# Model file location (inside container)
+MODEL_PATH=/app/models/llama-2-7b-chat.Q4_K_M.gguf
 
-# This will:
-# - Connect to your MediaWiki database
-# - Skip redirect and outdated pages
-# - Create vector embeddings for each page
-# - Store in ChromaDB for semantic search
+# Context window size (tokens)
+MODEL_CONTEXT_LENGTH=4096  # Llama-2 supports up to 4096
+
+# Maximum response length (tokens)
+MODEL_MAX_TOKENS=512       # Lower = faster, higher = longer answers
+
+# Creativity (0.0 = deterministic, 1.0 = very creative)
+MODEL_TEMPERATURE=0.7      # 0.7 is good for Q&A
+
+# Nucleus sampling (keep between 0.9-1.0)
+MODEL_TOP_P=0.9
+
+# CPU threads to use
+MODEL_THREADS=4            # Set to your CPU core count
+
+# GPU layers (NVIDIA GPU only)
+MODEL_GPU_LAYERS=0         # 0 = CPU only, 35 = full GPU (Llama-2-7B)
 ```
 
-**Indexing time:** ~2-5 minutes for 100-500 pages
+### Performance Tuning
 
-See [REINDEX_GUIDE.md](REINDEX_GUIDE.md) for detailed instructions.
+**For faster responses:**
+```bash
+MODEL_MAX_TOKENS=256       # Shorter answers
+MODEL_THREADS=8            # More CPU threads
+MODEL_GPU_LAYERS=35        # Use GPU if available
+```
+
+**For better quality:**
+```bash
+MODEL_MAX_TOKENS=1024      # Longer answers
+MODEL_TEMPERATURE=0.9      # More creative
+MODEL_CONTEXT_LENGTH=4096  # Larger context
+```
+
+**For lower RAM usage:**
+```bash
+MODEL_CONTEXT_LENGTH=2048  # Smaller context
+MODEL_MAX_TOKENS=256       # Shorter responses
+```
+
+---
+
+## 🎮 GPU Acceleration (Optional)
+
+### NVIDIA GPU Setup
+
+1. **Install NVIDIA Docker runtime:**
+   ```bash
+   distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+   curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+   curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+   sudo apt-get update && sudo apt-get install -y nvidia-docker2
+   sudo systemctl restart docker
+   ```
+
+2. **Update docker-compose.yml:**
+   ```yaml
+   chatbot-api:
+     deploy:
+       resources:
+         reservations:
+           devices:
+             - driver: nvidia
+               count: 1
+               capabilities: [gpu]
+   ```
+
+3. **Update .env:**
+   ```bash
+   MODEL_GPU_LAYERS=35  # Llama-2-7B fits fully on 6GB+ VRAM
+   ```
+
+4. **Rebuild and restart:**
+   ```bash
+   ./docker-stop.sh
+   ./docker-build.sh
+   ./docker-start.sh
+   ```
+
+---
+
+## 📊 Recommended Models
+
+| Model | Size | RAM Required | Quality | Speed | Best For |
+|-------|------|--------------|---------|-------|----------|
+| **Llama-2-7B-Chat-Q4_K_M** | 4.1GB | 8GB | Good | Medium | **Recommended** |
+| Llama-2-7B-Chat-Q5_K_M | 4.8GB | 10GB | Better | Slower | Higher quality |
+| Llama-2-13B-Chat-Q4_K_M | 7.4GB | 16GB | Best | Slow | Max quality |
+| Mistral-7B-Instruct-Q4_K_M | 4.1GB | 8GB | Good | Fast | Alternative |
+
+**Download from**: https://huggingface.co/TheBloke
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Container Won't Start
+### Container Fails to Start
 
 ```bash
 # Check logs
 ./docker-logs.sh
 
-# Check what's using port 8080
-sudo lsof -i :8080
-
-# Rebuild from scratch
-./docker-stop.sh
-docker-compose down -v
-./docker-build.sh
-./docker-start.sh
+# Common issues:
+# - Model file not found: Check MODEL_PATH in .env
+# - Out of memory: Reduce MODEL_CONTEXT_LENGTH
+# - Model corrupted: Re-download model file
 ```
 
-### Database Connection Failed
+### Model Not Found Error
 
 ```bash
-# Test database connection
-docker exec -it cs-wiki-chatbot-api python -c "
-from db_connector import WikiDBConnector
-db = WikiDBConnector()
-print('✅ OK' if db.connect() else '❌ FAILED')
-"
+# Verify model file exists
+ls -lh models/
 
-# Check credentials
-cat .env | grep DB_
+# Check model path in .env
+cat .env | grep MODEL_PATH
+
+# Model path should be: /app/models/your-model.gguf
 ```
 
-### OpenAI API Error
+### Slow Responses (> 30 seconds)
 
 ```bash
-# Test OpenAI connection
-docker exec -it cs-wiki-chatbot-api python -c "
-from openai_model import OpenAIModel
-m = OpenAIModel()
-m.load_model()
-print(m.generate_response('test'))
-"
+# Increase CPU threads
+MODEL_THREADS=8
 
-# Check API key
-cat .env | grep OPENAI_API_KEY
+# Reduce context length
+MODEL_CONTEXT_LENGTH=2048
 
-# Check quota at: https://platform.openai.com/usage
+# Use smaller/faster model
+# Or enable GPU acceleration
 ```
 
-### Chatbot Says "I don't know" for Valid Questions
+### Out of Memory
 
-1. **Reindex vector database** (most common fix)
-   ```bash
-   docker exec -it cs-wiki-chatbot-api python index_wiki.py
-   ```
+```bash
+# Use smaller context window
+MODEL_CONTEXT_LENGTH=2048
 
-2. **Check if pages were indexed**
-   ```bash
-   docker exec -it cs-wiki-chatbot-api python -c "
-   from vector_store import VectorStore
-   vs = VectorStore()
-   vs.initialize()
-   print(f'Documents indexed: {vs.collection.count()}')
-   "
-   ```
-
-3. **Increase retrieval count** (in `.env`)
-   ```bash
-   VECTOR_TOP_K=10  # Try retrieving more pages
-   ```
+# Use Q4 quantization instead of Q5
+# Close other applications
+# Add more RAM or swap
+```
 
 ---
 
-## 📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| **[DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)** | Complete deployment guide with all details |
-| **[DOCKER_QUICKREF.md](DOCKER_QUICKREF.md)** | Quick reference for common commands |
-| **[BRANCHES.md](BRANCHES.md)** | Comparison of main/openai/docker branches |
-| **[REINDEX_GUIDE.md](REINDEX_GUIDE.md)** | How to reindex vector database |
-| **[DOCKER_SUMMARY.md](DOCKER_SUMMARY.md)** | Docker architecture summary |
-
----
-
-## 🎨 Project Structure
+## 📚 Directory Structure
 
 ```
 cs_wiki_chatbot/
-├── app.py                  # Flask API server
-├── chatbot.py              # Main chatbot logic (RAG pipeline)
-├── config.py               # Configuration loader
-├── db_connector.py         # MediaWiki database connector
-├── openai_model.py         # OpenAI API wrapper
-├── vector_store.py         # ChromaDB vector search
-├── index_wiki.py           # Vector database indexing script
-├── serve_web.py            # Web server + reverse proxy
-├── index.html              # Web UI
-├── Dockerfile              # Container image definition
-├── docker-compose.yml      # Multi-container orchestration
-├── requirements.txt        # Python dependencies
-├── .env.example            # Configuration template
-├── docker-build.sh         # Build Docker images
-├── docker-start.sh         # Start services
-├── docker-stop.sh          # Stop services
-├── docker-restart.sh       # Restart services
-├── docker-status.sh        # Check status
-├── docker-logs.sh          # View logs
-└── README.md               # This file
+├── models/                          # Model files (must download)
+│   └── llama-2-7b-chat.Q4_K_M.gguf # Local LLM model
+├── chroma_db/                       # Vector database
+├── llm_model.py                     # Local LLM wrapper (NEW)
+├── chatbot.py                       # Uses LLMModel instead of OpenAI
+├── config.py                        # Local LLM configs (UPDATED)
+├── requirements.txt                 # Added llama-cpp-python
+├── Dockerfile                       # Added model directory
+├── docker-compose.yml               # Mounts ./models directory
+└── .env.example                     # Local LLM config template
 ```
 
 ---
 
-## 🔐 Security
+## 🔒 Privacy & Security
 
-### Single-Port Architecture
-
-This deployment uses a **reverse proxy pattern** for enhanced security:
-
-- ✅ **Only port 8080 exposed** to the internet
-- ✅ **API port 5000 not accessible** externally (internal Docker network only)
-- ✅ **All requests** go through the web container first
-- ✅ **Firewall management** simplified (one port to manage)
-
-### Best Practices
-
-1. **Never commit `.env`** - Contains sensitive credentials
-2. **Use strong passwords** - For database access
-3. **Rotate API keys** - Regularly update OpenAI API key
-4. **Enable HTTPS** - Use Nginx reverse proxy with SSL in production
-5. **Monitor usage** - Check OpenAI API usage regularly
-6. **Keep updated** - Rebuild containers after updates
+✅ **100% Local** - No data sent to external APIs
+✅ **Offline capable** - Works without internet (after setup)
+✅ **HIPAA/GDPR friendly** - Data stays on your infrastructure
+✅ **No API costs** - Free unlimited usage
+✅ **Open source** - Transparent and auditable
 
 ---
 
-## 💡 Performance Tips
+## 💰 Cost Comparison
 
-### Cost Optimization
+| Scenario | OpenAI (docker) | Local LLM (docker-local-llm) |
+|----------|-----------------|------------------------------|
+| **Setup** | Free | Free |
+| **Infrastructure** | $20-50/month (small server) | $50-100/month (larger server) |
+| **Per Request** | ~$0.00015 | $0.00 |
+| **1000 questions/day** | ~$4.50/month | $0.00 |
+| **10000 questions/day** | ~$45/month | $0.00 |
 
-- Use `gpt-4o-mini` instead of `gpt-4` (70% cheaper, similar quality)
-- Cache frequent queries (future feature)
-- Monitor usage at https://platform.openai.com/usage
-- Set `OPENAI_MAX_TOKENS` appropriately (lower = cheaper)
-
-### Quality Optimization
-
-- Reindex regularly when wiki content changes
-- Use `VECTOR_TOP_K=5` or higher for better retrieval
-- Set `OPENAI_TEMPERATURE=0.9` for creative responses
-- Keep wiki content well-organized and up-to-date
-- Remove outdated/redirect pages from wiki
-
-### Speed Optimization
-
-- Use `gpt-4o-mini` (faster than gpt-4)
-- Keep vector database on SSD
-- Ensure database connection is fast
-- Use appropriate hardware (2GB+ RAM recommended)
-
----
-
-## 🚢 Production Deployment
-
-### Deploy to Cloud (AWS/GCP/Azure)
-
-```bash
-# SSH to your server
-ssh user@your-server.com
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-
-# Clone and deploy
-git clone https://github.com/chchingyesstyle/cs_wiki_chatbot.git
-cd cs_wiki_chatbot
-git checkout docker
-
-cp .env.example .env
-nano .env  # Configure for production
-
-./docker-build.sh
-./docker-start.sh
-
-# Open port 8080 in firewall
-sudo ufw allow 8080
-```
-
-### Add HTTPS (with Nginx)
-
-```nginx
-# /etc/nginx/sites-available/chatbot
-server {
-    listen 443 ssl;
-    server_name chatbot.yourdomain.com;
-
-    ssl_certificate /etc/ssl/certs/your-cert.pem;
-    ssl_certificate_key /etc/ssl/private/your-key.pem;
-
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
----
-
-## 📄 License
-
-MIT License - See repository for details
+**Break-even:** ~5000-10000 questions/month
 
 ---
 
 ## 🆘 Support
 
-### Need Help?
-
-1. **Check logs**: `./docker-logs.sh`
-2. **Check status**: `./docker-status.sh`
-3. **Read docs**: [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
-4. **GitHub Issues**: https://github.com/chchingyesstyle/cs_wiki_chatbot/issues
-
-### Common Questions
-
-**Q: Why does it say "I don't know" for valid questions?**
-A: Reindex your vector database: `docker exec -it cs-wiki-chatbot-api python index_wiki.py`
-
-**Q: How much does OpenAI API cost?**
-A: With gpt-4o-mini, typically $0.01-$0.10 per day for moderate usage.
-
-**Q: Can I use a different LLM?**
-A: Currently supports OpenAI only. Check the `main` branch for local Llama support.
-
-**Q: How do I update the chatbot?**
-A: `git pull origin docker && ./docker-stop.sh && ./docker-build.sh && ./docker-start.sh`
+- **Full Docker Guide**: [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
+- **Quick Reference**: [DOCKER_QUICKREF.md](DOCKER_QUICKREF.md)
+- **Branch Comparison**: [BRANCHES.md](BRANCHES.md)
+- **Repository**: https://github.com/chchingyesstyle/cs_wiki_chatbot
+- **This Branch**: https://github.com/chchingyesstyle/cs_wiki_chatbot/tree/docker-local-llm
 
 ---
 
-## 📊 Recent Improvements
+## 🔄 Switching to/from Other Branches
 
-<details>
-<summary>Click to see detailed improvement history</summary>
+### To OpenAI version (docker branch):
+```bash
+git checkout docker
+cp .env.example .env
+# Add OPENAI_API_KEY to .env
+./docker-build.sh
+./docker-start.sh
+```
 
-### Problem: Chatbot Returning "I don't know" for Valid Questions
-
-**Root Cause:** Out of 431 wiki pages:
-- 151 pages (35%) were redirects with no content
-- 125 pages (29%) were marked as outdated/expired
-- Only 147 pages (34%) had actual useful content
-
-Vector search was retrieving redirect/outdated pages instead of real content.
-
-### Solutions Implemented
-
-1. **Smart Indexing Filter** - Skip redirects and outdated pages
-2. **Upgraded to gpt-4o-mini** - Better quality, 70% cheaper
-3. **Increased creativity** - Temperature 0.7 → 0.9
-4. **Longer responses** - Max tokens 512 → 1024
-5. **Better retrieval** - Top-K 3 → 5 pages
-
-### Performance Comparison
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Indexed pages | 431 (many redirects) | 147 (real content) | 66% less noise |
-| Model | gpt-3.5-turbo | gpt-4o-mini | Better quality |
-| API cost | $0.50/1.50 per 1M | $0.15/0.60 per 1M | 70% cheaper |
-| Temperature | 0.7 | 0.9 | More creative |
-| Max tokens | 512 | 1024 | 2x longer |
-| Pages retrieved | 3 | 5 | Better coverage |
-| Answer quality | Often "I don't know" | Accurate answers | ✅ Solved |
-
-</details>
+### From OpenAI to Local LLM (this branch):
+```bash
+git checkout docker-local-llm
+# Download model to ./models/
+cp .env.example .env
+# Configure MODEL_PATH in .env
+./docker-build.sh
+./docker-start.sh
+```
 
 ---
 
-**Repository**: https://github.com/chchingyesstyle/cs_wiki_chatbot
-**Branch**: docker
-**Status**: ✅ Production Ready
+**Branch**: docker-local-llm
+**Status**: ✅ Ready for testing
+**Last Updated**: 2025-01-17
