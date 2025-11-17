@@ -70,10 +70,9 @@ class WikiChatbot:
         """Extract important keywords from user query"""
         # Remove common question words but keep important abbreviations
         stop_words = ['what', 'is', 'are', 'the', 'how', 'can', 'do', 'does', 'tell', 'me', 'about', 'please']
-        
+
         # Handle domain names specially (keep .com, .net, etc.)
         # Replace periods in domain names with placeholder, then remove other punctuation
-        import re
         # Find domain-like patterns (word.com, word.net, etc.)
         query_processed = re.sub(r'\.com\b', 'DOTCOM', query, flags=re.IGNORECASE)
         query_processed = re.sub(r'\.net\b', 'DOTNET', query_processed, flags=re.IGNORECASE)
