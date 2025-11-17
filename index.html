@@ -223,8 +223,11 @@
     </div>
 
     <script>
-        // Use current hostname/IP instead of localhost
-        const API_URL = window.location.protocol + '//' + window.location.hostname + ':5001';
+        // Get API URL from query parameter or use same host with different port
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiPort = urlParams.get('api_port') || '5000';
+        const API_URL = window.location.protocol + '//' + window.location.hostname + ':' + apiPort;
+        
         const chatMessages = document.getElementById('chatMessages');
         const chatForm = document.getElementById('chatForm');
         const messageInput = document.getElementById('messageInput');

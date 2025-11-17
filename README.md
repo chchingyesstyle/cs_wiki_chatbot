@@ -184,6 +184,20 @@ The chatbot acts as a customer service agent that:
 - ✅ Says "I don't know based on the available information" when context is insufficient
 - ✅ Never makes up information outside the provided context
 
+## Configuration
+
+All ports and settings are configured via `.env` file - **no hardcoded values**:
+
+- `FLASK_PORT` - API server port (default: 5000)
+- `WEB_SERVER_PORT` - Web UI server port (default: 8080)
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` - Database settings
+- `MODEL_PATH` - Path to GGUF model file
+- `WIKI_BASE_URL` - Your MediaWiki base URL
+- `USE_VECTOR_SEARCH` - Enable/disable vector search (True/False)
+- `VECTOR_DB_PATH` - Vector database storage path
+
+Shell scripts (`start.sh`, `stop.sh`, `status.sh`) automatically read ports from `.env`.
+
 ## Troubleshooting
 
 ### Model loading issues
