@@ -228,7 +228,9 @@ curl -X POST http://localhost:8080/api/chat \
 | `./docker-restart.sh` | Restart services |
 | `./docker-status.sh` | Check status |
 | `./docker-logs.sh` | View logs |
-| `./docker-build.sh` | Rebuild containers |
+| `./docker-build.sh` | Build Docker image (only needed after code changes) |
+
+**Note:** Starting/stopping containers doesn't require rebuilding. The `docker-build.sh` script creates a single image `cs-wiki-chatbot:latest` that both containers use.
 
 ---
 

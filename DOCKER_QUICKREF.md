@@ -95,8 +95,10 @@ docker-compose logs --tail=50
 ./docker-start.sh
 
 # Force rebuild (no cache)
-docker-compose build --no-cache
+docker build --no-cache -t cs-wiki-chatbot:latest .
 ```
+
+**Note:** The build creates a single image `cs-wiki-chatbot:latest` used by both containers. You only rebuild when code changes - starting/stopping containers doesn't require a rebuild.
 
 ### Execute Commands in Container
 ```bash

@@ -77,6 +77,13 @@ WIKI_BASE_URL=http://your-wiki-url/index.php
 ./docker-build.sh
 ```
 
+This creates a single Docker image `cs-wiki-chatbot:latest` that both containers will use. You only need to rebuild when code changes.
+
+**How it works:**
+- Builds image with `docker build -t cs-wiki-chatbot:latest .`
+- Both API and Web containers use the same pre-built image
+- Faster container startup (no rebuild on `docker-start.sh`)
+
 ### 4. Start Services
 ```bash
 ./docker-start.sh

@@ -57,9 +57,15 @@
 
 ### 1. One-Command Deployment
 ```bash
-./docker-build.sh    # Build once
-./docker-start.sh    # Start anytime
+./docker-build.sh    # Build once (creates cs-wiki-chatbot:latest)
+./docker-start.sh    # Start anytime (uses pre-built image)
 ```
+
+**Simplified Build Process:**
+- Single `docker build` command creates one image
+- Both containers share the same image for efficiency
+- No rebuild needed when starting/stopping containers
+- Only rebuild when code changes
 
 ### 2. Multi-Container Architecture
 - **API Container** (chatbot-api)
