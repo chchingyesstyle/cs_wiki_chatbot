@@ -251,9 +251,9 @@ ANSWER:"""
     
     def chat(self, user_question: str) -> Dict:
         """Main RAG chat function with retrieval and generation"""
-        
+
         # Step 1: Retrieve relevant wiki pages (Retrieval)
-        context_pages = self.retrieve_context(user_question, max_pages=3)
+        context_pages = self.retrieve_context(user_question, max_pages=self.config.VECTOR_TOP_K)
         
         # Step 2: Build RAG prompt with context (Augmentation)
         prompt = self.build_prompt(user_question, context_pages)

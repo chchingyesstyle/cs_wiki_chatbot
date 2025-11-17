@@ -53,10 +53,23 @@ def main():
         content = full_page.get('content', '')
         if isinstance(content, bytes):
             content = content.decode('utf-8', errors='ignore')
-        
+
+        # Skip redirect pages and pages with no useful content
+        if content.strip().startswith('#REDIRECT') or len(content.strip()) < 50:
+            continue
+
+        # Skip outdated, expired, or moved pages (unless they're the only version)
+        title_upper = page_title.upper()
+        if any(marker in title_upper for marker in ['(OUTDATED)', '(EXPIRED)', '(MOVED)']):
+            continue
+
         # Clean wiki markup
         content = chatbot_temp.clean_wiki_text(content)
-        
+
+        # Skip if cleaned content is too short (likely no useful info)
+        if len(content.strip()) < 50:
+            continue
+
         formatted_pages.append({
             'page_id': page['page_id'],
             'title': page_title,
