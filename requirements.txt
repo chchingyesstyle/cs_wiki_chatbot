@@ -1,4 +1,4 @@
-llama-cpp-python==0.2.90
+openai>=1.0.0
 pymysql==1.1.1
 flask==3.0.3
 flask-cors==4.0.1

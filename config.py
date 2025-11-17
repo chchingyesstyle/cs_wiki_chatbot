@@ -13,17 +13,19 @@ class Config:
     DB_USER = os.getenv('DB_USER', 'wikiuser')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
     
-    # Llama model settings
-    MODEL_PATH = os.getenv('MODEL_PATH', './models/model.gguf')
-    MODEL_N_CTX = int(os.getenv('MODEL_N_CTX', 2048))
-    MODEL_N_THREADS = int(os.getenv('MODEL_N_THREADS', 4))
-    MODEL_MAX_TOKENS = int(os.getenv('MODEL_MAX_TOKENS', 512))
-    MODEL_TEMPERATURE = float(os.getenv('MODEL_TEMPERATURE', 0.7))
+    # OpenAI settings
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+    OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
+    OPENAI_MAX_TOKENS = int(os.getenv('OPENAI_MAX_TOKENS', 512))
+    OPENAI_TEMPERATURE = float(os.getenv('OPENAI_TEMPERATURE', 0.7))
     
     # Flask settings
     FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')
     FLASK_PORT = int(os.getenv('FLASK_PORT', 5000))
     FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    
+    # Web server settings
+    WEB_SERVER_PORT = int(os.getenv('WEB_SERVER_PORT', 8080))
     
     # Vector store settings
     USE_VECTOR_SEARCH = os.getenv('USE_VECTOR_SEARCH', 'True').lower() == 'true'

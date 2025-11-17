@@ -4,7 +4,7 @@ MediaWiki RAG (Retrieval-Augmented Generation) Chatbot
 RAG Architecture:
 1. RETRIEVAL: Find relevant wiki pages using vector/keyword search
 2. AUGMENTATION: Build context-enriched prompt with retrieved documents
-3. GENERATION: Generate answer using LLM with customer service persona
+3. GENERATION: Generate answer using OpenAI API with customer service persona
 
 Customer Service Agent Persona:
 - Answers based ONLY on provided context
@@ -14,19 +14,19 @@ Customer Service Agent Persona:
 """
 
 from db_connector import WikiDBConnector
-from llm_model import LlamaModel
+from openai_model import OpenAIModel
 from vector_store import VectorStore
 from config import Config
 from typing import Dict, List
 import re
 
 class WikiChatbot:
-    """Main chatbot logic combining wiki data and LLM"""
+    """Main chatbot logic combining wiki data and OpenAI"""
     
     def __init__(self):
         self.config = Config()
         self.db = WikiDBConnector()
-        self.llm = LlamaModel()
+        self.llm = OpenAIModel()
         self.vector_store = None
         
         self.db.connect()
@@ -258,7 +258,7 @@ ANSWER:"""
         # Step 2: Build RAG prompt with context (Augmentation)
         prompt = self.build_prompt(user_question, context_pages)
         
-        # Step 3: Generate response from LLM (Generation)
+        # Step 3: Generate response from OpenAI (Generation)
         answer = self.llm.generate_response(prompt)
         
         # Step 4: Extract and format sources with URLs

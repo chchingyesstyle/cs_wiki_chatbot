@@ -26,6 +26,14 @@ def health():
         'chatbot_ready': chatbot is not None
     })
 
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """Return frontend configuration"""
+    config = Config()
+    return jsonify({
+        'api_port': config.FLASK_PORT
+    })
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """Main chat endpoint"""

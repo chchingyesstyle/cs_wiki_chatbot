@@ -7,6 +7,10 @@ WEB_PID_FILE="$SCRIPT_DIR/web.pid"
 
 cd "$SCRIPT_DIR"
 
+# Read ports from .env file
+WEB_SERVER_PORT=$(grep "^WEB_SERVER_PORT=" .env 2>/dev/null | cut -d '=' -f2)
+WEB_SERVER_PORT=${WEB_SERVER_PORT:-8080}
+
 # Flag to track if chatbot was stopped
 CHATBOT_STOPPED=0
 
@@ -66,8 +70,8 @@ if [ -f "$WEB_PID_FILE" ]; then
     rm -f "$WEB_PID_FILE"
 fi
 
-# Kill any remaining http.server processes on port 8080
-WEB_PIDS=$(ps aux | grep "http.server 8080" | grep -v grep | awk '{print $2}')
+# Kill any remaining serve_web.py or http.server processes on the configured port
+WEB_PIDS=$(ps aux | grep -E "(serve_web.py|http.server $WEB_SERVER_PORT)" | grep -v grep | awk '{print $2}')
 if [ ! -z "$WEB_PIDS" ]; then
     echo "Cleaning up remaining web server processes..."
     echo "$WEB_PIDS" | xargs kill -9 2>/dev/null

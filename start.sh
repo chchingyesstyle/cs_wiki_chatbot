@@ -28,6 +28,14 @@ if [ ! -f "$SCRIPT_DIR/.env" ]; then
     exit 1
 fi
 
+# Read ports from .env file
+FLASK_PORT=$(grep "^FLASK_PORT=" .env | cut -d '=' -f2)
+WEB_SERVER_PORT=$(grep "^WEB_SERVER_PORT=" .env | cut -d '=' -f2)
+
+# Set defaults if not found
+FLASK_PORT=${FLASK_PORT:-5000}
+WEB_SERVER_PORT=${WEB_SERVER_PORT:-8080}
+
 # Start the Flask app in background
 echo "Starting MediaWiki Chatbot..."
 nohup python3 app.py >> "$LOG_FILE" 2>&1 &
@@ -41,17 +49,17 @@ sleep 2
 if ps -p $PID > /dev/null 2>&1; then
     echo "✓ Chatbot API started successfully (PID: $PID)"
     echo "  Log file: $LOG_FILE"
-    echo "  API available at: http://localhost:5001"
+    echo "  API available at: http://localhost:$FLASK_PORT"
 else
     echo "Failed to start chatbot. Check $LOG_FILE for errors"
     rm -f "$PID_FILE"
     exit 1
 fi
 
-# Start web server for HTML interface
+# Start web server for HTML interface using serve_web.py
 echo "Starting web server for UI..."
 cd "$SCRIPT_DIR"
-nohup python3 -m http.server 8080 >> "$WEB_LOG_FILE" 2>&1 &
+nohup python3 serve_web.py >> "$WEB_LOG_FILE" 2>&1 &
 WEB_PID=$!
 
 # Save web server PID
@@ -61,7 +69,7 @@ echo $WEB_PID > "$WEB_PID_FILE"
 sleep 1
 if ps -p $WEB_PID > /dev/null 2>&1; then
     echo "✓ Web server started successfully (PID: $WEB_PID)"
-    echo "  Web UI: http://localhost:8080"
+    echo "  Web UI: http://localhost:$WEB_SERVER_PORT"
     echo ""
     echo "All services started successfully!"
 else

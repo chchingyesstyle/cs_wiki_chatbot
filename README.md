@@ -1,24 +1,24 @@
-# MediaWiki Chatbot PoC
+# MediaWiki Chatbot PoC (OpenAI Version)
 
-A proof-of-concept chatbot that uses your MediaWiki 1.43 database with a local Llama model (via llama-cpp-python) to answer questions about your wiki content.
+A proof-of-concept chatbot that uses your MediaWiki 1.43 database with OpenAI API to answer questions about your wiki content.
 
 ## Architecture
 
 - **Database**: MariaDB (MediaWiki 1.43)
 - **Vector Database**: ChromaDB with sentence-transformers (semantic search)
-- **LLM**: Local Llama model (GGUF format via llama-cpp-python)
+- **LLM**: OpenAI API (GPT-3.5-turbo or GPT-4)
 - **Backend**: Python + Flask
 - **Frontend**: Simple HTML/JS interface
 - **RAG (Retrieval-Augmented Generation)**: 3-stage pipeline for accurate, source-backed answers
   - **Retrieval**: Hybrid vector + keyword search for relevant wiki pages
   - **Augmentation**: Context-enriched prompts with source references
-  - **Generation**: LLM generates answers strictly from provided context
+  - **Generation**: OpenAI generates answers strictly from provided context
 
 ## Features
 
 ✅ Query MediaWiki database for relevant content  
 ✅ Semantic search with vector embeddings (ChromaDB)  
-✅ Use LLM to generate natural language answers  
+✅ Use OpenAI API to generate natural language answers  
 ✅ RESTful API with Flask  
 ✅ Web UI and CLI interface  
 ✅ **Clickable source links**: Direct links to wiki pages for referenced sources  
@@ -36,24 +36,9 @@ A proof-of-concept chatbot that uses your MediaWiki 1.43 database with a local L
 python3 -m pip install -r requirements.txt
 ```
 
-### 2. Download a Llama Model
+### 2. Get OpenAI API Key
 
-Download a quantized GGUF model (4-bit recommended for CPU):
-
-```bash
-# Create models directory
-mkdir -p models
-
-# Example: Download Llama 2 7B Chat (Q4_K_M quantization)
-# You can use wget, curl, or download manually from Hugging Face
-# Popular options:
-# - TheBloke/Llama-2-7B-Chat-GGUF
-# - TheBloke/Mistral-7B-Instruct-v0.2-GGUF
-# - TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF (faster, smaller)
-
-# Example using wget:
-wget https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf -O models/llama-2-7b-chat.Q4_K_M.gguf
-```
+Sign up for OpenAI API access at https://platform.openai.com/ and get your API key.
 
 ### 3. Configure Environment
 
@@ -67,7 +52,8 @@ nano .env
 
 Update these values in `.env`:
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` - Your MariaDB credentials
-- `MODEL_PATH` - Path to your GGUF model file
+- `OPENAI_API_KEY` - Your OpenAI API key
+- `OPENAI_MODEL` - Model to use (e.g., gpt-3.5-turbo, gpt-4)
 - `WIKI_BASE_URL` - Your MediaWiki base URL (e.g., http://172.17.7.95/cswikiuat/index.php)
 
 ## Usage
@@ -148,7 +134,7 @@ chatbot/
 ├── chatbot.py          # Main chatbot logic
 ├── config.py           # Configuration
 ├── db_connector.py     # MediaWiki DB connector
-├── llm_model.py        # Llama model wrapper
+├── openai_model.py     # OpenAI API wrapper
 ├── cli.py              # Command-line interface
 ├── index.html          # Web interface
 ├── requirements.txt    # Python dependencies
@@ -191,7 +177,10 @@ All ports and settings are configured via `.env` file - **no hardcoded values**:
 - `FLASK_PORT` - API server port (default: 5000)
 - `WEB_SERVER_PORT` - Web UI server port (default: 8080)
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` - Database settings
-- `MODEL_PATH` - Path to GGUF model file
+- `OPENAI_API_KEY` - Your OpenAI API key
+- `OPENAI_MODEL` - OpenAI model to use (default: gpt-3.5-turbo)
+- `OPENAI_MAX_TOKENS` - Max tokens per response (default: 512)
+- `OPENAI_TEMPERATURE` - Temperature for response generation (default: 0.7)
 - `WIKI_BASE_URL` - Your MediaWiki base URL
 - `USE_VECTOR_SEARCH` - Enable/disable vector search (True/False)
 - `VECTOR_DB_PATH` - Vector database storage path
@@ -200,20 +189,20 @@ Shell scripts (`start.sh`, `stop.sh`, `status.sh`) automatically read ports from
 
 ## Troubleshooting
 
-### Model loading issues
-- Ensure the model file exists at the path specified in `.env`
-- Check you have enough RAM (4GB+ for Q4 models)
-- Try a smaller model like TinyLlama-1.1B
+### OpenAI API issues
+- Ensure `OPENAI_API_KEY` is set correctly in `.env`
+- Check your API quota at https://platform.openai.com/usage
+- Verify the model name (gpt-3.5-turbo, gpt-4, etc.)
 
 ### Database connection issues
 - Verify MariaDB is running
 - Check credentials in `.env`
 - Test connection: `mysql -h localhost -u wikiuser -p wikidb`
 
-### Slow responses
-- Use a smaller/faster model
-- Increase `MODEL_N_THREADS` in `.env`
-- Reduce `MAX_CONTEXT_PAGES` to use less context
+### Rate limiting
+- OpenAI API has rate limits based on your plan
+- Consider using gpt-3.5-turbo for faster/cheaper responses
+- Implement caching for frequently asked questions
 
 ### pip installation issues
 ```bash
