@@ -13,11 +13,14 @@ class Config:
     DB_USER = os.getenv('DB_USER', 'wikiuser')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
     
-    # OpenAI settings
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-    OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
-    OPENAI_MAX_TOKENS = int(os.getenv('OPENAI_MAX_TOKENS', 512))
-    OPENAI_TEMPERATURE = float(os.getenv('OPENAI_TEMPERATURE', 0.7))
+    # Local LLM settings
+    MODEL_PATH = os.getenv('MODEL_PATH', '/app/models/llama-2-7b-chat.Q4_K_M.gguf')
+    MODEL_CONTEXT_LENGTH = int(os.getenv('MODEL_CONTEXT_LENGTH', 4096))
+    MODEL_MAX_TOKENS = int(os.getenv('MODEL_MAX_TOKENS', 512))
+    MODEL_TEMPERATURE = float(os.getenv('MODEL_TEMPERATURE', 0.7))
+    MODEL_TOP_P = float(os.getenv('MODEL_TOP_P', 0.9))
+    MODEL_THREADS = int(os.getenv('MODEL_THREADS', 4))
+    MODEL_GPU_LAYERS = int(os.getenv('MODEL_GPU_LAYERS', 0))
     
     # Flask settings
     FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')

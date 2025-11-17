@@ -12,6 +12,7 @@ services:
     volumes:
       - ./chroma_db:/app/chroma_db
       - ./app.log:/app/app.log
+      - ./models:/app/models
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]

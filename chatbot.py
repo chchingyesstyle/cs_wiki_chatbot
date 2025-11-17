@@ -14,7 +14,7 @@ Customer Service Agent Persona:
 """
 
 from db_connector import WikiDBConnector
-from openai_model import OpenAIModel
+from llm_model import LLMModel
 from vector_store import VectorStore
 from config import Config
 from typing import Dict, List
@@ -26,7 +26,7 @@ class WikiChatbot:
     def __init__(self):
         self.config = Config()
         self.db = WikiDBConnector()
-        self.llm = OpenAIModel()
+        self.llm = LLMModel()
         self.vector_store = None
         
         self.db.connect()
