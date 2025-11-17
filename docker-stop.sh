@@ -3,11 +3,10 @@
 
 echo "Stopping CS Wiki Chatbot services..."
 
-docker-compose down
+# Stop containers
+docker stop cs-wiki-chatbot-api cs-wiki-chatbot-web 2>/dev/null
 
-if [ $? -eq 0 ]; then
-    echo "✓ Services stopped successfully!"
-else
-    echo "✗ Failed to stop services"
-    exit 1
-fi
+# Remove containers
+docker rm cs-wiki-chatbot-api cs-wiki-chatbot-web 2>/dev/null
+
+echo "✓ Services stopped successfully!"

@@ -5,7 +5,8 @@ echo "CS Wiki Chatbot - Docker Services Status"
 echo "=========================================="
 echo ""
 
-docker-compose ps
+# Show running containers
+docker ps --filter "name=cs-wiki-chatbot" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 echo ""
 echo "Container Details:"

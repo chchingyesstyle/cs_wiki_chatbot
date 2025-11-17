@@ -2,13 +2,15 @@
 # Docker build script
 
 echo "Building CS Wiki Chatbot Docker images..."
-docker-compose build --no-cache
+
+# Build the image using docker build
+docker build -t cs-wiki-chatbot:latest .
 
 if [ $? -eq 0 ]; then
-    echo "✓ Docker images built successfully!"
+    echo "✓ Docker image built successfully!"
     echo ""
     echo "Next steps:"
-    echo "  1. Copy .env.example to .env and configure it"
+    echo "  1. Ensure .env file is configured"
     echo "  2. Run: ./docker-start.sh"
 else
     echo "✗ Docker build failed"
