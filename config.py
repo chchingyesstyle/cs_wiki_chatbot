@@ -17,7 +17,7 @@ class Config:
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
     OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
     OPENAI_MAX_TOKENS = int(os.getenv('OPENAI_MAX_TOKENS', 1024))
-    OPENAI_TEMPERATURE = float(os.getenv('OPENAI_TEMPERATURE', 0.5))
+    OPENAI_TEMPERATURE = float(os.getenv('OPENAI_TEMPERATURE', 0.3))
     
     # Flask settings
     FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')

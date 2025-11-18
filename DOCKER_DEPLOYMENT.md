@@ -427,7 +427,7 @@ cp app.log app.log.backup
 ## 💡 Tips
 
 - Use `gpt-4o-mini` for all environments (best value - better than gpt-3.5, cheaper than gpt-4)
-- Use `OPENAI_TEMPERATURE=0.5` for consistent answers
+- Use `OPENAI_TEMPERATURE=0.3` for consistent answers
 - Monitor OpenAI usage at https://platform.openai.com/usage
 - Set up alerts for container health checks
 - Use `.env` for environment-specific configs
