@@ -62,7 +62,7 @@ DB_PASSWORD=your_db_password
 
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_MODEL=gpt-4o-mini
 
 # Ports (optional, defaults shown)
 FLASK_PORT=5000              # Internal API port (not exposed externally)
@@ -208,9 +208,9 @@ Then restart:
 ### Use Different OpenAI Model
 Edit `.env`:
 ```bash
-OPENAI_MODEL=gpt-4  # More capable but more expensive
+OPENAI_MODEL=gpt-4o-mini  # Recommended (best value)
 # or
-OPENAI_MODEL=gpt-3.5-turbo  # Faster and cheaper
+OPENAI_MODEL=gpt-4  # More capable but more expensive
 ```
 
 ### Enable Vector Search
@@ -426,8 +426,8 @@ cp app.log app.log.backup
 
 ## 💡 Tips
 
-- Use `gpt-3.5-turbo` for development (faster, cheaper)
-- Use `gpt-4` for production (better quality)
+- Use `gpt-4o-mini` for all environments (best value - better than gpt-3.5, cheaper than gpt-4)
+- Use `OPENAI_TEMPERATURE=0.5` for consistent answers
 - Monitor OpenAI usage at https://platform.openai.com/usage
 - Set up alerts for container health checks
 - Use `.env` for environment-specific configs
