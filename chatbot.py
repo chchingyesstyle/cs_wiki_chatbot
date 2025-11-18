@@ -147,9 +147,9 @@ class WikiChatbot:
                         content = content.decode('utf-8', errors='ignore')
                     content = self.clean_wiki_text(content)
                     
-                    # Limit content length
-                    if len(content) > 4000:
-                        content = content[:4000] + "..."
+                    # Limit content length (2500 chars × 5 pages ≈ 3100 tokens + overhead < 4096)
+                    if len(content) > 2500:
+                        content = content[:2500] + "..."
                     
                     context_pages.append({
                         'title': result['title'],
@@ -205,8 +205,9 @@ class WikiChatbot:
             content = self.clean_wiki_text(content)
             
             # Limit content length to avoid context overflow
-            if len(content) > 4000:
-                content = content[:4000] + "..."
+            # 2500 chars × 5 pages ≈ 3100 tokens + overhead < 4096 token limit
+            if len(content) > 2500:
+                content = content[:2500] + "..."
             
             context_pages.append({
                 'title': page_title,
