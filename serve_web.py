@@ -65,8 +65,8 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 req = urllib.request.Request(api_url)
 
-            # Forward request to API (120s timeout for slow LLM inference)
-            with urllib.request.urlopen(req, timeout=120) as response:
+            # Forward request to API (600s = 10min timeout for slow LLM inference)
+            with urllib.request.urlopen(req, timeout=600) as response:
                 # Send response back to client
                 self.send_response(response.status)
 
