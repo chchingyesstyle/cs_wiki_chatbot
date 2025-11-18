@@ -148,8 +148,8 @@ class WikiChatbot:
                     content = self.clean_wiki_text(content)
                     
                     # Limit content length
-                    if len(content) > 1500:
-                        content = content[:1500] + "..."
+                    if len(content) > 4000:
+                        content = content[:4000] + "..."
                     
                     context_pages.append({
                         'title': result['title'],
@@ -205,8 +205,8 @@ class WikiChatbot:
             content = self.clean_wiki_text(content)
             
             # Limit content length to avoid context overflow
-            if len(content) > 1500:
-                content = content[:1500] + "..."
+            if len(content) > 4000:
+                content = content[:4000] + "..."
             
             context_pages.append({
                 'title': page_title,
