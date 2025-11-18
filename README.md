@@ -263,7 +263,7 @@ FLASK_PORT=5000               # Internal API port (not exposed)
 
 # OpenAI Model Tuning
 OPENAI_MAX_TOKENS=1024        # Response length (default: 1024)
-OPENAI_TEMPERATURE=0.9        # Creativity (0.0-1.0, default: 0.9)
+OPENAI_TEMPERATURE=0.5        # Creativity (0.0-1.0, default: 0.5)
 
 # Vector Search
 USE_VECTOR_SEARCH=True        # Enable semantic search
@@ -460,7 +460,7 @@ This deployment uses a **reverse proxy pattern** for enhanced security:
 
 - Reindex regularly when wiki content changes
 - Use `VECTOR_TOP_K=5` or higher for better retrieval
-- Set `OPENAI_TEMPERATURE=0.9` for creative responses
+- Set `OPENAI_TEMPERATURE=0.5` for consistent, accurate responses
 - Keep wiki content well-organized and up-to-date
 - Remove outdated/redirect pages from wiki
 
@@ -582,7 +582,7 @@ Vector search was retrieving redirect/outdated pages instead of real content.
 
 1. **Smart Indexing Filter** - Skip redirects and outdated pages
 2. **Upgraded to gpt-4o-mini** - Better quality, 70% cheaper
-3. **Increased creativity** - Temperature 0.7 → 0.9
+3. **Optimized temperature** - Temperature 0.7 → 0.5 for consistency
 4. **Longer responses** - Max tokens 512 → 1024
 5. **Better retrieval** - Top-K 3 → 5 pages
 
@@ -593,7 +593,7 @@ Vector search was retrieving redirect/outdated pages instead of real content.
 | Indexed pages | 431 (many redirects) | 147 (real content) | 66% less noise |
 | Model | gpt-3.5-turbo | gpt-4o-mini | Better quality |
 | API cost | $0.50/1.50 per 1M | $0.15/0.60 per 1M | 70% cheaper |
-| Temperature | 0.7 | 0.9 | More creative |
+| Temperature | 0.7 | 0.5 | More consistent |
 | Max tokens | 512 | 1024 | 2x longer |
 | Pages retrieved | 3 | 5 | Better coverage |
 | Answer quality | Often "I don't know" | Accurate answers | ✅ Solved |
