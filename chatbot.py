@@ -234,14 +234,14 @@ class WikiChatbot:
 {context_text}
 
 INSTRUCTIONS:
-- Answer based ONLY on the context provided above
-- If the context contains the answer, provide a clear and helpful response
-- If the context does not contain enough information to answer, respond with: "I don't know based on the available information."
-- Do not make up information or use knowledge outside the provided context
+- Use the context above to answer the question
+- If the context contains ANY relevant information, provide a helpful answer based on it
+- Only say "I don't know based on the available information" if the context has NO relevant information at all
+- Do not make up information that is not in the context
 - DO NOT write "Source:" or "Sources:" anywhere in your answer
 - DO NOT write [Source 1], [Source 2], etc. in your answer
 - DO NOT add any source citations or references in your answer
-- Answer ONLY the user's question below - do not generate additional questions or answers
+- Keep your answer focused on the user's question
 
 USER QUESTION: {user_question}
 
