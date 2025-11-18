@@ -33,11 +33,16 @@ def main():
     
     print(f"✓ Found {len(pages)} pages")
     
-    # Clean and format pages
-    print("\n3. Cleaning wiki content...")
+    # Clean and format pages WITH CHUNKING
+    print("\n3. Cleaning and chunking wiki content...")
     chatbot_temp = WikiChatbot.__new__(WikiChatbot)  # Create instance without __init__
     
+    chunk_size = 1800  # Characters per chunk
+    chunk_overlap = 300  # Overlap between chunks to avoid cutting sentences
+    
     formatted_pages = []
+    total_chunks = 0
+    
     for page in pages:
         # Handle bytes
         page_title = page['page_title']
@@ -70,13 +75,40 @@ def main():
         if len(content.strip()) < 50:
             continue
 
-        formatted_pages.append({
-            'page_id': page['page_id'],
-            'title': page_title,
-            'content': content
-        })
+        # Split long pages into chunks
+        if len(content) <= chunk_size:
+            # Short page - index as is
+            formatted_pages.append({
+                'page_id': f"{page['page_id']}_0",
+                'title': page_title,
+                'content': content
+            })
+            total_chunks += 1
+        else:
+            # Long page - split into chunks
+            chunks_for_page = 0
+            for i in range(0, len(content), chunk_size - chunk_overlap):
+                chunk = content[i:i + chunk_size]
+                
+                # Skip very short end chunks
+                if len(chunk.strip()) < 100:
+                    continue
+                
+                # Create chunk title showing it's part of a page
+                chunk_title = page_title
+                if chunks_for_page > 0:
+                    chunk_title = f"{page_title} (part {chunks_for_page + 1})"
+                
+                formatted_pages.append({
+                    'page_id': f"{page['page_id']}_{chunks_for_page}",
+                    'title': chunk_title,
+                    'content': chunk
+                })
+                chunks_for_page += 1
+                total_chunks += 1
     
-    print(f"✓ Cleaned {len(formatted_pages)} pages")
+    print(f"✓ Processed {len(pages)} pages into {total_chunks} chunks")
+    print(f"  Average chunks per page: {total_chunks / len(formatted_pages) if formatted_pages else 0:.1f}")
     
     # Initialize vector store
     print("\n4. Initializing vector store...")
