@@ -15,9 +15,9 @@ class Config:
     
     # OpenAI settings
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-    OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
-    OPENAI_MAX_TOKENS = int(os.getenv('OPENAI_MAX_TOKENS', 512))
-    OPENAI_TEMPERATURE = float(os.getenv('OPENAI_TEMPERATURE', 0.7))
+    OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+    OPENAI_MAX_TOKENS = int(os.getenv('OPENAI_MAX_TOKENS', 1024))
+    OPENAI_TEMPERATURE = float(os.getenv('OPENAI_TEMPERATURE', 0.5))
     
     # Flask settings
     FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')
@@ -30,7 +30,7 @@ class Config:
     # Vector store settings
     USE_VECTOR_SEARCH = os.getenv('USE_VECTOR_SEARCH', 'True').lower() == 'true'
     VECTOR_DB_PATH = os.getenv('VECTOR_DB_PATH', './chroma_db')
-    VECTOR_TOP_K = int(os.getenv('VECTOR_TOP_K', 3))
+    VECTOR_TOP_K = int(os.getenv('VECTOR_TOP_K', 5))
     
     # Wiki settings
     WIKI_BASE_URL = os.getenv('WIKI_BASE_URL', 'http://172.17.7.95/cswikiuat/index.php')
