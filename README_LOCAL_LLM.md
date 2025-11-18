@@ -116,6 +116,43 @@ WIKI_BASE_URL=http://your-wiki-url/index.php
 - **Web UI**: http://localhost:8080
 - **Health Check**: http://localhost:8080/health
 
+### 6. Index Wiki Pages (First Time Setup)
+
+After starting the services, you need to index your wiki pages into the vector database:
+
+```bash
+# Run indexing script
+docker exec -it cs-wiki-chatbot-api python index_wiki.py
+```
+
+**When to reindex:**
+- ✅ First time setup (required)
+- ✅ When wiki content is significantly updated
+- ✅ When new pages are added
+- ✅ When search results become outdated
+
+**Reindexing time:**
+- Small wiki (< 100 pages): 1-2 minutes
+- Medium wiki (100-500 pages): 2-5 minutes
+- Large wiki (500+ pages): 5-10 minutes
+
+**Clear and reindex:**
+```bash
+# Stop services
+./docker-stop.sh
+
+# Clear existing vector database
+rm -rf chroma_db/*
+
+# Start services
+./docker-start.sh
+
+# Reindex
+docker exec -it cs-wiki-chatbot-api python index_wiki.py
+```
+
+For detailed reindexing guide, see [REINDEX_GUIDE.md](REINDEX_GUIDE.md)
+
 ---
 
 ## ⚙️ Configuration Guide

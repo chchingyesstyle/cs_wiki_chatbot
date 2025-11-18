@@ -97,6 +97,15 @@ curl -X POST http://localhost:8080/api/chat \
   -d '{"question": "What is YesAsia?"}'
 ```
 
+### 7. Index Wiki Pages (First Time)
+```bash
+# Run indexing script
+docker exec -it cs-wiki-chatbot-api python index_wiki.py
+
+# This indexes all wiki pages into ChromaDB for semantic search
+# Takes 2-10 minutes depending on wiki size
+```
+
 ---
 
 ## Common Issues
