@@ -127,7 +127,7 @@ class WikiChatbot:
                 boost = 0
                 for keyword in keywords:
                     if len(keyword) >= 3 and keyword in title_lower:
-                        boost += 0.15
+                        boost += 0.30
                 
                 result['adjusted_similarity'] = original_score + boost
                 filtered_results.append(result)

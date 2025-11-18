@@ -214,7 +214,7 @@ nano .env  # Set DB credentials and MODEL_PATH
 MODEL_PATH=/app/models/llama-2-7b-chat.Q4_K_M.gguf
 MODEL_CONTEXT_LENGTH=4096
 MODEL_MAX_TOKENS=512
-MODEL_TEMPERATURE=0.7
+MODEL_TEMPERATURE=0.5
 MODEL_THREADS=4
 MODEL_GPU_LAYERS=0  # Set to 35 for GPU acceleration
 ```

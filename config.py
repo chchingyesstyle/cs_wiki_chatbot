@@ -17,7 +17,7 @@ class Config:
     MODEL_PATH = os.getenv('MODEL_PATH', '/app/models/llama-2-7b-chat.Q4_K_M.gguf')
     MODEL_CONTEXT_LENGTH = int(os.getenv('MODEL_CONTEXT_LENGTH', 4096))
     MODEL_MAX_TOKENS = int(os.getenv('MODEL_MAX_TOKENS', 512))
-    MODEL_TEMPERATURE = float(os.getenv('MODEL_TEMPERATURE', 0.7))
+    MODEL_TEMPERATURE = float(os.getenv('MODEL_TEMPERATURE', 0.5))
     MODEL_TOP_P = float(os.getenv('MODEL_TOP_P', 0.9))
     MODEL_THREADS = int(os.getenv('MODEL_THREADS', 4))
     MODEL_GPU_LAYERS = int(os.getenv('MODEL_GPU_LAYERS', 0))
