@@ -32,22 +32,40 @@ class WikiChatbot:
         self.db.connect()
         self.llm.load_model()
         
-        # Initialize vector store if enabled
+        # Initialize vector store if enabled (with retry for persistence loading)
         if self.config.USE_VECTOR_SEARCH:
-            try:
-                self.vector_store = VectorStore(persist_directory=self.config.VECTOR_DB_PATH)
-                if self.vector_store.initialize():
-                    if not self.vector_store.is_empty():
-                        print(f"✓ Vector search enabled ({self.vector_store.collection.count()} documents)")
+            import time
+            max_retries = 3
+            retry_delay = 1  # seconds
+
+            for attempt in range(max_retries):
+                try:
+                    self.vector_store = VectorStore(persist_directory=self.config.VECTOR_DB_PATH)
+                    if self.vector_store.initialize():
+                        doc_count = self.vector_store.collection.count()
+                        if doc_count > 0:
+                            print(f"✓ Vector search enabled ({doc_count} documents)")
+                            break
+                        else:
+                            if attempt < max_retries - 1:
+                                print(f"⚠️  Vector store empty on attempt {attempt + 1}/{max_retries}, retrying in {retry_delay}s...")
+                                time.sleep(retry_delay)
+                            else:
+                                print("⚠️  Vector store is empty after retries. Run index_wiki.py to populate it.")
+                                self.vector_store = None
                     else:
-                        print("⚠️  Vector store is empty. Run index_wiki.py to populate it.")
+                        print(f"⚠️  Vector store initialization failed (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            time.sleep(retry_delay)
+                        else:
+                            self.vector_store = None
+                except Exception as e:
+                    print(f"⚠️  Vector store error on attempt {attempt + 1}/{max_retries}: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                    else:
+                        print("⚠️  Using keyword search only.")
                         self.vector_store = None
-                else:
-                    print("⚠️  Vector store initialization failed. Using keyword search only.")
-                    self.vector_store = None
-            except Exception as e:
-                print(f"⚠️  Vector store error: {e}. Using keyword search only.")
-                self.vector_store = None
     
     def clean_wiki_text(self, text: str) -> str:
         """Remove MediaWiki markup for cleaner context"""

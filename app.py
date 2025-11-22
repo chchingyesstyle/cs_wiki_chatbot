@@ -21,9 +21,24 @@ except Exception as e:
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
+    vector_store_status = {
+        'enabled': False,
+        'documents': 0
+    }
+
+    if chatbot and chatbot.vector_store:
+        try:
+            vector_store_status = {
+                'enabled': True,
+                'documents': chatbot.vector_store.collection.count()
+            }
+        except:
+            vector_store_status['enabled'] = False
+
     return jsonify({
         'status': 'ok',
-        'chatbot_ready': chatbot is not None
+        'chatbot_ready': chatbot is not None,
+        'vector_store': vector_store_status
     })
 
 @app.route('/api/chat', methods=['POST'])
