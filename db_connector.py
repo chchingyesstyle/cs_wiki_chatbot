@@ -10,7 +10,7 @@ class WikiDBConnector:
         self.connection = None
     
     def connect(self):
-        """Establish database connection"""
+        """Establish database connection with auto-reconnect"""
         try:
             self.connection = pymysql.connect(
                 host=self.config.DB_HOST,
@@ -19,13 +19,28 @@ class WikiDBConnector:
                 password=self.config.DB_PASSWORD,
                 database=self.config.DB_NAME,
                 charset='utf8mb4',
-                cursorclass=pymysql.cursors.DictCursor
+                cursorclass=pymysql.cursors.DictCursor,
+                connect_timeout=10,
+                read_timeout=30,
+                write_timeout=30
             )
             print(f"Connected to database: {self.config.DB_NAME}")
             return True
         except Exception as e:
             print(f"Database connection error: {e}")
             return False
+
+    def ensure_connection(self):
+        """Ensure database connection is alive, reconnect if needed"""
+        try:
+            if self.connection:
+                # Test if connection is alive
+                self.connection.ping(reconnect=True)
+            else:
+                self.connect()
+        except Exception as e:
+            print(f"Connection lost, reconnecting: {e}")
+            self.connect()
     
     def disconnect(self):
         """Close database connection"""
@@ -35,8 +50,7 @@ class WikiDBConnector:
     
     def search_pages(self, query: str, limit: int = 5) -> List[Dict]:
         """Search wiki pages by title or content, prioritizing current pages"""
-        if not self.connection:
-            self.connect()
+        self.ensure_connection()
         
         try:
             with self.connection.cursor() as cursor:
@@ -81,8 +95,7 @@ class WikiDBConnector:
     
     def get_page_by_title(self, title: str) -> Optional[Dict]:
         """Get a specific page by title"""
-        if not self.connection:
-            self.connect()
+        self.ensure_connection()
         
         try:
             with self.connection.cursor() as cursor:
@@ -111,8 +124,7 @@ class WikiDBConnector:
     
     def get_all_pages(self, limit: int = 100) -> List[Dict]:
         """Get all wiki pages (for context building)"""
-        if not self.connection:
-            self.connect()
+        self.ensure_connection()
         
         try:
             with self.connection.cursor() as cursor:
