@@ -74,7 +74,7 @@ nano .env  # Add DB credentials and OpenAI API key
 │                    User Browser                     │
 │              http://localhost:8080                  │
 └────────────────────┬────────────────────────────────┘
-                     │ Port 8080 (only exposed port)
+                     │ Port 8080 (Web UI)
                      ↓
 ┌────────────────────────────────────────────────────┐
 │              Docker Container 1                    │
@@ -96,13 +96,15 @@ nano .env  # Add DB credentials and OpenAI API key
 │  │ 4. Sends context to OpenAI API               │ │
 │  │ 5. Returns answer + sources                  │ │
 │  └──────────────────────────────────────────────┘ │
-└───┬────────────────────────────────────────┬───────┘
-    │                                        │
-    ↓                                        ↓
-┌─────────────┐                      ┌──────────────┐
-│  MediaWiki  │                      │  OpenAI API  │
-│  Database   │                      │ (gpt-4o-mini)│
-│  (MariaDB)  │                      └──────────────┘
+│                                                    │
+│  Port 8443 (API direct access)                    │
+└───┬────────────┬───────────────────────────┬───────┘
+    │            │                           │
+    ↓            ↓                           ↓
+┌─────────────┐  ┌──────────────┐  ┌─────────────────┐
+│  MediaWiki  │  │  OpenAI API  │  │  External Apps  │
+│  Database   │  │ (gpt-4o-mini)│  │  (via :8443)    │
+│  (MariaDB)  │  └──────────────┘  └─────────────────┘
 └─────────────┘
     ↓
 ┌─────────────┐
@@ -110,6 +112,10 @@ nano .env  # Add DB credentials and OpenAI API key
 │ (vectors)   │
 └─────────────┘
 ```
+
+**Ports:**
+- **8080**: Web UI and proxied API access (browser users)
+- **8443**: Direct API access (external applications)
 
 ### Technology Stack
 
@@ -196,12 +202,33 @@ nano .env  # Add DB credentials and OpenAI API key
 
 ### API Interface
 
+You can access the chatbot API directly on port 8443 (configurable via `API_HOST_PORT` in `.env`).
+
 **POST** `/api/chat`
 
+**Linux/Mac:**
 ```bash
-curl -X POST http://localhost:8080/api/chat \
+curl -X POST http://localhost:8443/api/chat \
   -H "Content-Type: application/json" \
   -d '{"question": "What is YesAsia?"}'
+```
+
+**Windows CMD:**
+```cmd
+curl -X POST http://localhost:8443/api/chat -H "Content-Type: application/json" -d "{\"question\": \"What is YesAsia?\"}"
+```
+
+**Windows PowerShell:**
+```powershell
+curl -X POST http://localhost:8443/api/chat -H "Content-Type: application/json" -d '{"question": "What is YesAsia?"}'
+```
+
+**From External Server:**
+```bash
+# Replace YOUR_SERVER_IP with actual server IP
+curl -X POST http://YOUR_SERVER_IP:8443/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "How to return the order"}'
 ```
 
 **Response:**
@@ -215,8 +242,18 @@ curl -X POST http://localhost:8080/api/chat \
       "url": "http://wiki/index.php?title=YesAsia"
     }
   ],
-  "context_used": true
+  "context_used": true,
+  "retrieval_method": "keyword_search",
+  "num_sources": 5
 }
+```
+
+**Alternative: Access via Web UI proxy**
+```bash
+# The web container on port 8080 also proxies API requests
+curl -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is YesAsia?"}'
 ```
 
 ### Management Commands
@@ -258,8 +295,9 @@ WIKI_BASE_URL=http://your-wiki-url/index.php
 
 ```bash
 # Port Configuration
-WEB_SERVER_PORT=8080          # External port (only this is exposed)
-FLASK_PORT=5000               # Internal API port (not exposed)
+WEB_SERVER_PORT=8080          # Web UI port (default: 8080)
+API_HOST_PORT=8443            # API external port (default: 8443)
+FLASK_PORT=5000               # Internal API port (container only)
 
 # OpenAI Model Tuning
 OPENAI_MAX_TOKENS=1024        # Response length (default: 1024)

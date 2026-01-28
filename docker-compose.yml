@@ -2,9 +2,9 @@ services:
   chatbot-api:
     image: cs-wiki-chatbot:latest
     container_name: cs-wiki-chatbot-api
-    # Port 5000 NOT exposed externally - only accessible via internal network
-    expose:
-      - "5000"
+    # Port 5000 accessible internally; host port can be configured via API_HOST_PORT in .env
+    ports:
+      - "${API_HOST_PORT:-8443}:5000"
     env_file:
       - .env
     volumes:
