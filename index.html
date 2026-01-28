@@ -106,6 +106,84 @@
             text-decoration: underline;
         }
         
+        .feedback-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .feedback-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .feedback-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .feedback-btn.selected-up {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #28a745;
+        }
+        
+        .feedback-btn.selected-down {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+        
+        .feedback-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .correction-form {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .correction-form.show {
+            display: block;
+        }
+        
+        .correction-form textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+        }
+        
+        .correction-form button {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .feedback-thanks {
+            color: #28a745;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
         .chat-input-container {
             padding: 20px;
             background: white;
@@ -251,7 +329,7 @@
                 status.style.color = 'red';
             });
 
-        function addMessage(content, isUser, sources = null) {
+        function addMessage(content, isUser, sources = null, question = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
             
@@ -276,8 +354,95 @@
                 contentDiv.appendChild(sourcesDiv);
             }
             
+            // Add feedback buttons for bot messages
+            if (!isUser && question) {
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'feedback-buttons';
+                feedbackDiv.innerHTML = `
+                    <button class="feedback-btn" data-rating="up" title="Good answer">
+                        👍 Helpful
+                    </button>
+                    <button class="feedback-btn" data-rating="down" title="Bad answer">
+                        👎 Not helpful
+                    </button>
+                `;
+                
+                // Correction form (hidden by default)
+                const correctionDiv = document.createElement('div');
+                correctionDiv.className = 'correction-form';
+                correctionDiv.innerHTML = `
+                    <textarea placeholder="What would be the correct answer? (optional)"></textarea>
+                    <button type="button">Submit Correction</button>
+                `;
+                
+                // Thanks message
+                const thanksDiv = document.createElement('div');
+                thanksDiv.className = 'feedback-thanks';
+                thanksDiv.style.display = 'none';
+                
+                contentDiv.appendChild(feedbackDiv);
+                contentDiv.appendChild(correctionDiv);
+                contentDiv.appendChild(thanksDiv);
+                
+                // Handle feedback clicks
+                const feedbackBtns = feedbackDiv.querySelectorAll('.feedback-btn');
+                feedbackBtns.forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const rating = btn.dataset.rating;
+                        
+                        if (rating === 'down') {
+                            // Show correction form for negative feedback
+                            correctionDiv.classList.add('show');
+                            btn.classList.add('selected-down');
+                            feedbackBtns.forEach(b => b.disabled = true);
+                        } else {
+                            // Submit positive feedback immediately
+                            btn.classList.add('selected-up');
+                            feedbackBtns.forEach(b => b.disabled = true);
+                            await submitFeedback(question, content, rating, sources, null);
+                            thanksDiv.textContent = '✓ Thank you for your feedback!';
+                            thanksDiv.style.display = 'block';
+                        }
+                    });
+                });
+                
+                // Handle correction submission
+                const correctionBtn = correctionDiv.querySelector('button');
+                correctionBtn.addEventListener('click', async () => {
+                    const correction = correctionDiv.querySelector('textarea').value;
+                    await submitFeedback(question, content, 'down', sources, correction);
+                    correctionDiv.classList.remove('show');
+                    thanksDiv.textContent = '✓ Thank you for your feedback and correction!';
+                    thanksDiv.style.display = 'block';
+                });
+            }
+            
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        async function submitFeedback(question, answer, rating, sources, correction) {
+            try {
+                const response = await fetch(`${API_URL}/api/feedback`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question,
+                        answer,
+                        rating,
+                        sources,
+                        correction
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Feedback submitted:', data);
+                return data;
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+            }
         }
 
         function showTyping() {
@@ -335,13 +500,13 @@
                 hideTyping();
                 
                 if (response.ok) {
-                    addMessage(data.answer, false, data.sources);
+                    addMessage(data.answer, false, data.sources, question);
                 } else {
-                    addMessage(`Error: ${data.error}`, false);
+                    addMessage(`Error: ${data.error}`, false, null, null);
                 }
             } catch (error) {
                 hideTyping();
-                addMessage(`Error: Cannot connect to server. ${error.message}`, false);
+                addMessage(`Error: Cannot connect to server. ${error.message}`, false, null, null);
             } finally {
                 sendButton.disabled = false;
                 messageInput.disabled = false;

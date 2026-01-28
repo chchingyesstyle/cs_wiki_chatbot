@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from chatbot import WikiChatbot
+from feedback_store import FeedbackStore
 from config import Config
 import traceback
 
@@ -10,12 +11,22 @@ CORS(app)
 # Initialize chatbot
 print("Initializing chatbot...")
 chatbot = None
+feedback_store = None
 
 try:
     chatbot = WikiChatbot()
     print("Chatbot initialized successfully")
 except Exception as e:
     print(f"Error initializing chatbot: {e}")
+    traceback.print_exc()
+
+# Initialize feedback store
+try:
+    feedback_store = FeedbackStore()
+    feedback_store.initialize()
+    print("Feedback store initialized successfully")
+except Exception as e:
+    print(f"Error initializing feedback store: {e}")
     traceback.print_exc()
 
 @app.route('/health', methods=['GET'])
@@ -69,6 +80,202 @@ def chat():
         return jsonify({
             'error': str(e)
         }), 500
+
+
+# ============== FEEDBACK ENDPOINTS ==============
+
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    """
+    Submit user feedback on a chatbot response
+    
+    Request body:
+    {
+        "question": "user question",
+        "answer": "chatbot answer",
+        "rating": "up" or "down",
+        "sources": [...],           # optional
+        "correction": "correct answer",  # optional, for bad answers
+        "comment": "user comment"   # optional
+    }
+    """
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        data = request.get_json()
+        
+        question = data.get('question', '')
+        answer = data.get('answer', '')
+        rating = data.get('rating', '')
+        
+        if not question or not answer or not rating:
+            return jsonify({
+                'error': 'Missing required fields: question, answer, rating'
+            }), 400
+        
+        if rating not in ['up', 'down']:
+            return jsonify({
+                'error': 'Rating must be "up" or "down"'
+            }), 400
+        
+        feedback_id = feedback_store.save_feedback(
+            question=question,
+            answer=answer,
+            rating=rating,
+            sources=data.get('sources'),
+            correction=data.get('correction'),
+            user_comment=data.get('comment'),
+            session_id=data.get('session_id'),
+            retrieval_method=data.get('retrieval_method')
+        )
+        
+        return jsonify({
+            'success': True,
+            'feedback_id': feedback_id,
+            'message': 'Thank you for your feedback!'
+        })
+    
+    except Exception as e:
+        print(f"Feedback error: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/feedback/stats', methods=['GET'])
+def feedback_stats():
+    """Get feedback statistics"""
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        stats = feedback_store.get_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/feedback/list', methods=['GET'])
+def list_feedback():
+    """
+    List feedback entries with optional filters
+    
+    Query params:
+    - rating: 'up' or 'down' (optional)
+    - reviewed: 'true' or 'false' (optional)
+    - limit: max results (default 100)
+    """
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        rating = request.args.get('rating')
+        reviewed_param = request.args.get('reviewed')
+        limit = int(request.args.get('limit', 100))
+        
+        reviewed = None
+        if reviewed_param == 'true':
+            reviewed = True
+        elif reviewed_param == 'false':
+            reviewed = False
+        
+        feedback_list = feedback_store.get_feedback(
+            rating=rating,
+            reviewed=reviewed,
+            limit=limit
+        )
+        
+        return jsonify({
+            'count': len(feedback_list),
+            'feedback': feedback_list
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/feedback/search', methods=['GET'])
+def search_feedback():
+    """
+    Search for similar feedback using semantic search
+    
+    Query params:
+    - q: search query
+    - limit: max results (default 5)
+    """
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        query = request.args.get('q', '')
+        limit = int(request.args.get('limit', 5))
+        
+        if not query:
+            return jsonify({'error': 'Missing query parameter: q'}), 400
+        
+        similar = feedback_store.search_similar_feedback(query, top_k=limit)
+        
+        return jsonify({
+            'query': query,
+            'count': len(similar),
+            'results': similar
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/feedback/<feedback_id>/review', methods=['POST'])
+def review_feedback(feedback_id):
+    """
+    Mark feedback as reviewed
+    
+    Request body (optional):
+    {
+        "notes": "reviewer notes"
+    }
+    """
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        data = request.get_json() or {}
+        notes = data.get('notes')
+        
+        success = feedback_store.mark_reviewed(feedback_id, notes)
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Feedback marked as reviewed'})
+        else:
+            return jsonify({'error': 'Feedback not found'}), 404
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/feedback/training-data', methods=['GET'])
+def export_training_data():
+    """
+    Export positive feedback for fine-tuning or few-shot prompts
+    
+    Query params:
+    - include_corrections: 'true' to include corrected negative feedback
+    """
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        include_corrections = request.args.get('include_corrections', 'false') == 'true'
+        
+        training_data = feedback_store.get_training_data(only_positive=not include_corrections)
+        
+        return jsonify({
+            'count': len(training_data),
+            'data': training_data
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     config = Config()
