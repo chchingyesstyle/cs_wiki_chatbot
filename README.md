@@ -167,6 +167,7 @@ nano .env  # Add DB credentials and OpenAI API key
 
 ### Technical Features
 - ✅ **Single-Port Deployment** - Only port 8080 exposed (more secure)
+- ✅ **Direct API Access** - Port 8443 for external app integration
 - ✅ **Health Checks** - Automatic monitoring and restart
 - ✅ **Data Persistence** - Vector DB and logs survive restarts
 - ✅ **RESTful API** - Easy integration with other systems
@@ -178,6 +179,12 @@ nano .env  # Add DB credentials and OpenAI API key
 - ✅ **Improved Retrieval** - Retrieves 5 pages for better coverage
 - ✅ **Clean Indexing** - Only indexes pages with real content
 - ✅ **Creative Responses** - Tuned for natural, conversational answers
+
+### Feedback & Learning Features
+- ✅ **User Feedback** - Thumbs up/down rating on answers
+- ✅ **Correction System** - Users can provide correct answers for bad responses
+- ✅ **Automatic Learning** - Feedback loop improves future answers
+- ✅ **Training Data Export** - Export feedback for fine-tuning
 
 ---
 
@@ -271,6 +278,126 @@ curl -X POST http://localhost:8080/api/chat \
 
 ---
 
+## 👍 Feedback System
+
+The chatbot includes a feedback loop that learns from user corrections.
+
+### How It Works
+
+```
+User asks question → Chatbot answers → User rates 👍 or 👎
+                                              ↓
+                              If 👎: User can provide correction
+                                              ↓
+                              Feedback stored in ChromaDB
+                                              ↓
+                   Next similar question → Uses correction as context
+                                              ↓
+                              Improved answer! 🎉
+```
+
+### Web UI Feedback
+- Each bot response has **👍 Helpful** and **👎 Not helpful** buttons
+- Clicking 👎 shows a correction form
+- Corrections are automatically used for future similar questions
+
+### Feedback API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/feedback` | POST | Submit rating (up/down) with optional correction |
+| `/api/feedback/stats` | GET | View feedback statistics |
+| `/api/feedback/list` | GET | List all feedback entries |
+| `/api/feedback/search?q=` | GET | Semantic search in feedback |
+| `/api/feedback/<id>/review` | POST | Mark feedback as reviewed |
+| `/api/feedback/training-data` | GET | Export for fine-tuning |
+| `/api/feedback/clear` | POST | Clear all feedback (requires confirm) |
+| `/api/feedback/<id>` | DELETE | Delete single feedback |
+
+### Submit Feedback
+
+**Linux/Mac:**
+```bash
+curl -X POST http://localhost:8443/api/feedback \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What is refund policy?",
+    "answer": "I dont know",
+    "rating": "down",
+    "correction": "Refunds are processed within 7-14 business days."
+  }'
+```
+
+**Windows CMD:**
+```cmd
+curl -X POST http://localhost:8443/api/feedback -H "Content-Type: application/json" -d "{\"question\": \"What is refund policy?\", \"answer\": \"I dont know\", \"rating\": \"down\", \"correction\": \"Refunds processed in 7-14 days.\"}"
+```
+
+### View Statistics
+```bash
+curl http://localhost:8443/api/feedback/stats
+```
+
+**Response:**
+```json
+{
+  "total": 10,
+  "thumbs_up": 7,
+  "thumbs_down": 3,
+  "pending_review": 5,
+  "satisfaction_rate": 70.0
+}
+```
+
+### Clear All Feedback
+```bash
+curl -X POST http://localhost:8443/api/feedback/clear \
+  -H "Content-Type: application/json" \
+  -d '{"confirm": true}'
+```
+
+---
+
+## 🔄 Data Management APIs
+
+### Reindex Wiki Vectors
+
+Refresh the vector database when wiki content changes:
+
+**Linux/Mac:**
+```bash
+curl -X POST http://localhost:8443/api/reindex \
+  -H "Content-Type: application/json" \
+  -d '{"confirm": true}'
+```
+
+**Windows CMD:**
+```cmd
+curl -X POST http://localhost:8443/api/reindex -H "Content-Type: application/json" -d "{\"confirm\": true}"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Successfully indexed 148 pages",
+  "pages_found": 432,
+  "pages_indexed": 148,
+  "pages_skipped": 284
+}
+```
+
+### Data Separation
+
+| Collection | Contains | Affected by reindex? |
+|------------|----------|---------------------|
+| `wiki_pages` | Wiki content vectors | ✅ Yes (refreshed) |
+| `user_feedback` | User ratings & corrections | ❌ No (preserved) |
+
+**Important:** Reindexing wiki does NOT delete feedback data.
+
+---
+
 ## ⚙️ Configuration
 
 ### Required Settings (`.env`)
@@ -333,16 +460,23 @@ Run reindexing when:
 
 ### How to Reindex
 
+**Option 1: API (Recommended)**
 ```bash
-# Docker deployment
-docker exec -it cs-wiki-chatbot-api python index_wiki.py
-
-# This will:
-# - Connect to your MediaWiki database
-# - Skip redirect and outdated pages
-# - Create vector embeddings for each page
-# - Store in ChromaDB for semantic search
+curl -X POST http://localhost:8443/api/reindex \
+  -H "Content-Type: application/json" \
+  -d '{"confirm": true}'
 ```
+
+**Option 2: CLI**
+```bash
+docker exec -it cs-wiki-chatbot-api python index_wiki.py
+```
+
+Both methods will:
+- Connect to your MediaWiki database
+- Skip redirect and outdated pages
+- Create vector embeddings for each page
+- Store in ChromaDB for semantic search
 
 **Indexing time:** ~2-5 minutes for 100-500 pages
 
