@@ -3,19 +3,22 @@ MediaWiki RAG (Retrieval-Augmented Generation) Chatbot
 
 RAG Architecture:
 1. RETRIEVAL: Find relevant wiki pages using vector/keyword search
-2. AUGMENTATION: Build context-enriched prompt with retrieved documents
-3. GENERATION: Generate answer using OpenAI API with customer service persona
+2. FEEDBACK LOOKUP: Search for similar past Q&A with corrections
+3. AUGMENTATION: Build context-enriched prompt with retrieved documents + feedback
+4. GENERATION: Generate answer using OpenAI API with customer service persona
 
 Customer Service Agent Persona:
 - Answers based ONLY on provided context
 - Cites sources explicitly using **Source: [Name]** format
 - Says "I don't know" when context lacks information
 - Never makes up information outside the context
+- Learns from user corrections via feedback loop
 """
 
 from db_connector import WikiDBConnector
 from openai_model import OpenAIModel
 from vector_store import VectorStore
+from feedback_store import FeedbackStore
 from config import Config
 from typing import Dict, List
 import re
@@ -66,6 +69,63 @@ class WikiChatbot:
                     else:
                         print("⚠️  Using keyword search only.")
                         self.vector_store = None
+        
+        # Initialize feedback store for learning from user corrections
+        self.feedback_store = None
+        try:
+            self.feedback_store = FeedbackStore(persist_directory=self.config.VECTOR_DB_PATH)
+            if self.feedback_store.initialize():
+                feedback_count = self.feedback_store.collection.count()
+                print(f"✓ Feedback loop enabled ({feedback_count} feedback entries)")
+            else:
+                self.feedback_store = None
+        except Exception as e:
+            print(f"⚠️  Feedback store error: {e}")
+            self.feedback_store = None
+    
+    def get_relevant_feedback(self, query: str, top_k: int = 3) -> List[Dict]:
+        """
+        Search for similar past Q&A pairs with corrections.
+        Returns feedback entries that might help answer the current question.
+        """
+        if not self.feedback_store:
+            return []
+        
+        try:
+            # Search for similar questions in feedback
+            similar = self.feedback_store.search_similar_feedback(query, top_k=top_k)
+            
+            # Filter for high-quality feedback (corrections or highly rated)
+            relevant = []
+            for entry in similar:
+                similarity = entry.get('similarity', 0)
+                
+                # Only use feedback with good similarity (> 0.6)
+                if similarity < 0.6:
+                    continue
+                
+                # Prioritize corrections (user-provided correct answers)
+                if entry.get('correction'):
+                    relevant.append({
+                        'question': entry.get('question'),
+                        'answer': entry.get('correction'),  # Use correction as the answer
+                        'type': 'correction',
+                        'similarity': similarity
+                    })
+                # Also include highly-rated answers as good examples
+                elif entry.get('rating') == 'up':
+                    relevant.append({
+                        'question': entry.get('question'),
+                        'answer': entry.get('answer'),
+                        'type': 'positive_example',
+                        'similarity': similarity
+                    })
+            
+            return relevant[:2]  # Limit to top 2 to avoid prompt bloat
+            
+        except Exception as e:
+            print(f"Feedback lookup error: {e}")
+            return []
     
     def clean_wiki_text(self, text: str) -> str:
         """Remove MediaWiki markup for cleaner context"""
@@ -233,8 +293,8 @@ class WikiChatbot:
         
         return context_pages
     
-    def build_prompt(self, user_question: str, context_pages: List[Dict]) -> str:
-        """Build RAG prompt for customer service agent"""
+    def build_prompt(self, user_question: str, context_pages: List[Dict], feedback_examples: List[Dict] = None) -> str:
+        """Build RAG prompt for customer service agent with feedback integration"""
         
         # Build context section with clear source references
         context_text = ""
@@ -245,14 +305,26 @@ class WikiChatbot:
         else:
             context_text = "CONTEXT INFORMATION:\nNo relevant information found.\n"
         
+        # Build few-shot examples from feedback (corrections and positive examples)
+        feedback_text = ""
+        if feedback_examples:
+            feedback_text = "\nPREVIOUS GOOD ANSWERS (use as reference for style and accuracy):\n"
+            for i, example in enumerate(feedback_examples, 1):
+                example_type = "Corrected answer" if example.get('type') == 'correction' else "Good example"
+                feedback_text += f"\n[{example_type} {i}]\n"
+                feedback_text += f"Q: {example['question']}\n"
+                feedback_text += f"A: {example['answer']}\n"
+        
         # Build RAG prompt with instructions
         prompt = f"""You are a helpful customer service agent. Answer questions using the provided context.
 
 {context_text}
-
+{feedback_text}
 INSTRUCTIONS:
 - Use the context above to answer the question
 - If the context contains ANY relevant information, provide a helpful answer based on it
+- If there are PREVIOUS GOOD ANSWERS for similar questions, follow their style and accuracy
+- If a CORRECTED ANSWER exists for a very similar question, prefer that corrected information
 - Only say "I don't know based on the available information" if the context has NO relevant information at all
 - Do not make up information that is not in the context
 - DO NOT write "Source:" or "Sources:" anywhere in your answer
@@ -267,18 +339,21 @@ ANSWER:"""
         return prompt
     
     def chat(self, user_question: str) -> Dict:
-        """Main RAG chat function with retrieval and generation"""
+        """Main RAG chat function with retrieval, feedback lookup, and generation"""
 
         # Step 1: Retrieve relevant wiki pages (Retrieval)
         context_pages = self.retrieve_context(user_question, max_pages=self.config.VECTOR_TOP_K)
         
-        # Step 2: Build RAG prompt with context (Augmentation)
-        prompt = self.build_prompt(user_question, context_pages)
+        # Step 2: Search for relevant feedback (corrections and good examples)
+        feedback_examples = self.get_relevant_feedback(user_question, top_k=3)
         
-        # Step 3: Generate response from OpenAI (Generation)
+        # Step 3: Build RAG prompt with context and feedback (Augmentation)
+        prompt = self.build_prompt(user_question, context_pages, feedback_examples)
+        
+        # Step 4: Generate response from OpenAI (Generation)
         answer = self.llm.generate_response(prompt)
         
-        # Step 4: Extract and format sources with URLs
+        # Step 5: Extract and format sources with URLs
         sources = []
         for page in context_pages:
             title = page['title']
@@ -291,6 +366,7 @@ ANSWER:"""
         
         # Add metadata about retrieval method used
         retrieval_method = "vector_search" if self.vector_store else "keyword_search"
+        feedback_used = len(feedback_examples) > 0
         
         return {
             'question': user_question,
@@ -298,7 +374,9 @@ ANSWER:"""
             'sources': sources,
             'context_used': len(context_pages) > 0,
             'retrieval_method': retrieval_method,
-            'num_sources': len(sources)
+            'num_sources': len(sources),
+            'feedback_used': feedback_used,
+            'feedback_count': len(feedback_examples)
         }
     
     def close(self):
