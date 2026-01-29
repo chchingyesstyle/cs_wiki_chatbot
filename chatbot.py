@@ -323,8 +323,9 @@ class WikiChatbot:
 INSTRUCTIONS:
 - Use the context above to answer the question
 - If the context contains ANY relevant information, provide a helpful answer based on it
-- If there are PREVIOUS GOOD ANSWERS for similar questions, follow their style and accuracy
-- If a CORRECTED ANSWER exists for a very similar question, prefer that corrected information
+- If there are PREVIOUS GOOD ANSWERS for similar questions, use their information but REPHRASE into a complete, natural sentence
+- If a CORRECTED ANSWER exists, use that information but write a proper, complete answer (don't just copy it verbatim)
+- For example, if the correction is "It is Joshua Lau", write "The CEO is Joshua Lau" as a complete answer
 - Only say "I don't know based on the available information" if the context has NO relevant information at all
 - Do not make up information that is not in the context
 - DO NOT write "Source:" or "Sources:" anywhere in your answer
