@@ -324,7 +324,8 @@ class WikiChatbot:
                 history_text += f"Assistant: {exchange['answer']}\n\n"
         
         # Build RAG prompt with instructions
-        prompt = f"""You are a helpful customer service agent. Answer questions using the provided context.
+        prompt = f"""You are a knowledge assistant helping CUSTOMER SERVICE AGENTS find information. 
+The user asking questions IS a customer service agent who needs answers to help customers.
 
 {context_text}
 {feedback_text}
@@ -335,11 +336,12 @@ INSTRUCTIONS:
 - If there is CONVERSATION HISTORY, use it to understand follow-up questions
 - If there are PREVIOUS GOOD ANSWERS for similar questions, use their information but REPHRASE into a complete, natural sentence
 - If a CORRECTED ANSWER exists, use that information but write a proper, complete answer (don't just copy it verbatim)
-- For example, if the correction is "It is Joshua Lau", write "The CEO is Joshua Lau" as a complete answer
-- Only say "I don't know based on the available information" if the context has NO relevant information at all
+- Only say "I don't have this information in the wiki" if there is NO relevant information at all
 - Do not make up information that is not in the context
 - DO NOT write "Source:" or "Sources:" anywhere in your answer
 - DO NOT add any source citations or references in your answer
+- NEVER tell the user to "contact customer service" or "reach out to support" - the user IS customer service
+- Provide direct answers that the CS agent can use to help customers
 
 USER QUESTION: {user_question}
 
