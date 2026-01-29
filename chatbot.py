@@ -293,8 +293,8 @@ class WikiChatbot:
         
         return context_pages
     
-    def build_prompt(self, user_question: str, context_pages: List[Dict], feedback_examples: List[Dict] = None) -> str:
-        """Build RAG prompt for customer service agent with feedback integration"""
+    def build_prompt(self, user_question: str, context_pages: List[Dict], feedback_examples: List[Dict] = None, history: list = None) -> str:
+        """Build RAG prompt for customer service agent with feedback integration and conversation history"""
         
         # Build context section with clear source references
         context_text = ""
@@ -315,17 +315,25 @@ class WikiChatbot:
                 feedback_text += f"Q: {example['question']}\n"
                 feedback_text += f"A: {example['answer']}\n"
         
+        # Build conversation history section
+        history_text = ""
+        if history and len(history) > 0:
+            history_text = "\nCONVERSATION HISTORY:\n"
+            for i, exchange in enumerate(history[-3:], 1):  # Last 3 exchanges
+                history_text += f"User: {exchange['question']}\n"
+                history_text += f"Assistant: {exchange['answer']}\n\n"
+        
         # Build RAG prompt with instructions
         prompt = f"""You are a helpful customer service agent. Answer questions using the provided context.
 
 {context_text}
 {feedback_text}
+{history_text}
 INSTRUCTIONS:
 - Answer ONLY what the user asked - do not add extra information they didn't request
+- If there is CONVERSATION HISTORY, use it to understand follow-up questions (e.g., "How about overseas?" refers to the previous topic)
 - If there is a CORRECTED ANSWER for a similar question, use that corrected information as the primary answer
 - If a CORRECTED ANSWER exists, rephrase it into a complete, natural sentence (don't copy verbatim)
-- For example, if the correction is "It is Joshua Lau", write "The CEO is Joshua Lau"
-- Only use context to supplement if the user's question requires more than what the correction provides
 - Only say "I don't know based on the available information" if there is NO relevant information at all
 - Do not make up information that is not in the context
 - DO NOT write "Source:" or "Sources:" anywhere in your answer
@@ -338,17 +346,26 @@ ANSWER:"""
         
         return prompt
     
-    def chat(self, user_question: str) -> Dict:
+    def chat(self, user_question: str, history: list = None) -> Dict:
         """Main RAG chat function with retrieval, feedback lookup, and generation"""
 
+        # Enhance query with conversation context for better retrieval
+        enhanced_query = user_question
+        if history and len(history) > 0:
+            # If the question seems like a follow-up (short or contains pronouns/references)
+            if len(user_question.split()) <= 5 or any(word in user_question.lower() for word in ['it', 'that', 'this', 'those', 'how about', 'what about']):
+                # Combine with last question for better context
+                last_exchange = history[-1]
+                enhanced_query = f"{last_exchange['question']} {user_question}"
+        
         # Step 1: Retrieve relevant wiki pages (Retrieval)
-        context_pages = self.retrieve_context(user_question, max_pages=self.config.VECTOR_TOP_K)
+        context_pages = self.retrieve_context(enhanced_query, max_pages=self.config.VECTOR_TOP_K)
         
         # Step 2: Search for relevant feedback (corrections and good examples)
-        feedback_examples = self.get_relevant_feedback(user_question, top_k=3)
+        feedback_examples = self.get_relevant_feedback(enhanced_query, top_k=3)
         
-        # Step 3: Build RAG prompt with context and feedback (Augmentation)
-        prompt = self.build_prompt(user_question, context_pages, feedback_examples)
+        # Step 3: Build RAG prompt with context, feedback, and history (Augmentation)
+        prompt = self.build_prompt(user_question, context_pages, feedback_examples, history=history)
         
         # Step 4: Generate response from OpenAI (Generation)
         answer = self.llm.generate_response(prompt)

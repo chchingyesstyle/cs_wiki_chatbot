@@ -306,6 +306,13 @@
         const apiPort = urlParams.get('api_port') || '5000';
         const API_URL = window.location.protocol + '//' + window.location.hostname + ':' + apiPort;
         
+        // Generate or retrieve session ID for conversation continuity
+        let sessionId = sessionStorage.getItem('chatbot_session_id');
+        if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('chatbot_session_id', sessionId);
+        }
+        
         const chatMessages = document.getElementById('chatMessages');
         const chatForm = document.getElementById('chatForm');
         const messageInput = document.getElementById('messageInput');
@@ -492,10 +499,16 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ question })
+                    body: JSON.stringify({ question, session_id: sessionId })
                 });
                 
                 const data = await response.json();
+                
+                // Update session_id if server provides one
+                if (data.session_id) {
+                    sessionId = data.session_id;
+                    sessionStorage.setItem('chatbot_session_id', sessionId);
+                }
                 
                 hideTyping();
                 

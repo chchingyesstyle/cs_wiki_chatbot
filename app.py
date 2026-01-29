@@ -5,6 +5,9 @@ from feedback_store import FeedbackStore
 from index_wiki import reindex_wiki
 from config import Config
 import traceback
+import uuid
+from collections import defaultdict
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -13,6 +16,12 @@ CORS(app)
 print("Initializing chatbot...")
 chatbot = None
 feedback_store = None
+
+# Conversation history storage (session_id -> list of {question, answer})
+# In production, use Redis or database for persistence
+conversation_history = defaultdict(list)
+MAX_HISTORY_LENGTH = 5  # Keep last 5 exchanges per session
+SESSION_TIMEOUT_HOURS = 24
 
 try:
     chatbot = WikiChatbot()
@@ -127,7 +136,7 @@ def reindex_vectordb():
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    """Main chat endpoint"""
+    """Main chat endpoint with conversation history support"""
     if not chatbot:
         return jsonify({
             'error': 'Chatbot not initialized'
@@ -136,14 +145,36 @@ def chat():
     try:
         data = request.get_json()
         question = data.get('question', '')
+        session_id = data.get('session_id', '')
         
         if not question:
             return jsonify({
                 'error': 'No question provided'
             }), 400
         
-        # Get response from chatbot
-        response = chatbot.chat(question)
+        # Generate session_id if not provided
+        if not session_id:
+            session_id = str(uuid.uuid4())
+        
+        # Get conversation history for this session
+        history = conversation_history.get(session_id, [])
+        
+        # Get response from chatbot with history
+        response = chatbot.chat(question, history=history)
+        
+        # Store this exchange in history
+        conversation_history[session_id].append({
+            'question': question,
+            'answer': response['answer'],
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        # Trim history to max length
+        if len(conversation_history[session_id]) > MAX_HISTORY_LENGTH:
+            conversation_history[session_id] = conversation_history[session_id][-MAX_HISTORY_LENGTH:]
+        
+        # Add session_id to response
+        response['session_id'] = session_id
         
         return jsonify(response)
     
