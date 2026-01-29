@@ -234,6 +234,12 @@ class FeedbackStore:
             return similar
             
         except Exception as e:
+            # Handle stale collection reference (e.g., after clear_all)
+            if "does not exist" in str(e):
+                print("⚠️  Feedback collection stale, reinitializing...")
+                self._initialized = False
+                if self.initialize():
+                    return self.search_similar_feedback(query, top_k)
             print(f"❌ Error searching feedback: {e}")
             return []
     
