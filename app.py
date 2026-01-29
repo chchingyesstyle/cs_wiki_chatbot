@@ -277,6 +277,70 @@ def export_training_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/feedback/clear', methods=['POST'])
+def clear_feedback():
+    """
+    Clear all feedback entries (reset completely).
+    
+    Request body (optional):
+    {
+        "confirm": true  # Required to prevent accidental deletion
+    }
+    
+    This is useful for:
+    - Starting fresh with feedback collection
+    - Removing outdated feedback after major wiki updates
+    """
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        data = request.get_json() or {}
+        
+        # Require confirmation to prevent accidental deletion
+        if not data.get('confirm'):
+            return jsonify({
+                'error': 'Confirmation required. Send {"confirm": true} to clear all feedback.',
+                'warning': 'This will permanently delete all feedback entries!'
+            }), 400
+        
+        # Get count before clearing
+        stats = feedback_store.get_stats()
+        count_before = stats.get('total', 0)
+        
+        success = feedback_store.clear_all()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Cleared {count_before} feedback entries',
+                'deleted_count': count_before
+            })
+        else:
+            return jsonify({'error': 'Failed to clear feedback'}), 500
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/feedback/<feedback_id>', methods=['DELETE'])
+def delete_single_feedback(feedback_id):
+    """Delete a single feedback entry by ID"""
+    if not feedback_store:
+        return jsonify({'error': 'Feedback store not initialized'}), 500
+    
+    try:
+        success = feedback_store.delete_feedback(feedback_id)
+        
+        if success:
+            return jsonify({'success': True, 'message': f'Deleted feedback {feedback_id}'})
+        else:
+            return jsonify({'error': 'Feedback not found or delete failed'}), 404
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     config = Config()
     app.run(

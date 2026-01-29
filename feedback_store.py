@@ -359,6 +359,33 @@ class FeedbackStore:
         except Exception as e:
             print(f"❌ Error deleting feedback: {e}")
             return False
+    
+    def clear_all(self) -> bool:
+        """
+        Clear all feedback entries (reset completely).
+        Use this to start fresh with feedback collection.
+        """
+        if not self._initialized:
+            if not self.initialize():
+                return False
+        
+        try:
+            # Delete the collection and recreate it
+            self.client.delete_collection("user_feedback")
+            
+            # Recreate empty collection
+            self.collection = self.client.get_or_create_collection(
+                name="user_feedback",
+                embedding_function=self.embedding_function,
+                metadata={"description": "User feedback on chatbot responses"}
+            )
+            
+            print("✓ Feedback store cleared")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error clearing feedback: {e}")
+            return False
 
 
 # Quick test
