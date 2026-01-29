@@ -330,15 +330,16 @@ class WikiChatbot:
 {feedback_text}
 {history_text}
 INSTRUCTIONS:
-- Answer ONLY what the user asked - do not add extra information they didn't request
-- If there is CONVERSATION HISTORY, use it to understand follow-up questions (e.g., "How about overseas?" refers to the previous topic)
-- If there is a CORRECTED ANSWER for a similar question, use that corrected information as the primary answer
-- If a CORRECTED ANSWER exists, rephrase it into a complete, natural sentence (don't copy verbatim)
-- Only say "I don't know based on the available information" if there is NO relevant information at all
+- Use the context above to answer the question
+- If the context contains ANY relevant information, provide a helpful answer based on it
+- If there is CONVERSATION HISTORY, use it to understand follow-up questions
+- If there are PREVIOUS GOOD ANSWERS for similar questions, use their information but REPHRASE into a complete, natural sentence
+- If a CORRECTED ANSWER exists, use that information but write a proper, complete answer (don't just copy it verbatim)
+- For example, if the correction is "It is Joshua Lau", write "The CEO is Joshua Lau" as a complete answer
+- Only say "I don't know based on the available information" if the context has NO relevant information at all
 - Do not make up information that is not in the context
 - DO NOT write "Source:" or "Sources:" anywhere in your answer
 - DO NOT add any source citations or references in your answer
-- Be concise and focused on the user's specific question
 
 USER QUESTION: {user_question}
 
