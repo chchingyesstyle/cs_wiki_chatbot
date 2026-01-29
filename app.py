@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from chatbot import WikiChatbot
 from feedback_store import FeedbackStore
+from index_wiki import reindex_wiki
 from config import Config
 import traceback
 
@@ -51,6 +52,78 @@ def health():
         'chatbot_ready': chatbot is not None,
         'vector_store': vector_store_status
     })
+
+
+@app.route('/api/reindex', methods=['POST'])
+def reindex_vectordb():
+    """
+    Reindex wiki pages into vector database.
+    
+    Request body (optional):
+    {
+        "confirm": true,           # Required to start reindex
+        "clear_existing": true     # Clear existing vectors before indexing (default: true)
+    }
+    
+    This will:
+    1. Connect to MediaWiki database
+    2. Fetch all wiki pages
+    3. Clean and filter content (skip redirects, outdated pages)
+    4. Re-create vector embeddings
+    5. Store in ChromaDB
+    
+    Note: This does NOT affect feedback data (separate collection).
+    """
+    try:
+        data = request.get_json() or {}
+        
+        # Require confirmation to prevent accidental long-running operation
+        if not data.get('confirm'):
+            # Get current stats
+            current_docs = 0
+            if chatbot and chatbot.vector_store:
+                try:
+                    current_docs = chatbot.vector_store.collection.count()
+                except:
+                    pass
+            
+            return jsonify({
+                'error': 'Confirmation required. Send {"confirm": true} to start reindexing.',
+                'warning': 'This will refresh all wiki vectors. May take 2-5 minutes.',
+                'current_documents': current_docs
+            }), 400
+        
+        clear_existing = data.get('clear_existing', True)
+        
+        # Run reindexing
+        result = reindex_wiki(clear_existing=clear_existing)
+        
+        if result['success']:
+            # Reinitialize chatbot's vector store to pick up new data
+            if chatbot and chatbot.vector_store:
+                try:
+                    chatbot.vector_store.initialize()
+                except:
+                    pass
+            
+            return jsonify({
+                'success': True,
+                'message': result['message'],
+                'pages_found': result['pages_found'],
+                'pages_indexed': result['pages_indexed'],
+                'pages_skipped': result['pages_skipped']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': result['message'],
+                'errors': result['errors']
+            }), 500
+    
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
