@@ -99,8 +99,14 @@ def main():
     port = config.WEB_SERVER_PORT
 
     handler = ProxyHTTPRequestHandler
+    
+    # Use ThreadingTCPServer for concurrent request handling
+    # This prevents page loads from blocking while API calls are in progress
+    class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+        allow_reuse_address = True
+        daemon_threads = True
 
-    with socketserver.TCPServer(("", port), handler) as httpd:
+    with ThreadedTCPServer(("", port), handler) as httpd:
         print(f"=" * 60)
         print(f"Web Server with API Proxy Starting")
         print(f"=" * 60)
